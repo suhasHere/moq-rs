@@ -6,6 +6,7 @@
 //! - Accepting QUIC connections from publishers and subscribers
 //! - Routing media between local and remote endpoints
 //! - Coordinating namespace/track registration across relay clusters
+//! - High-performance filtering at track and object level
 //!
 //! # Example
 //!
@@ -31,6 +32,7 @@
 mod api;
 mod consumer;
 mod coordinator;
+pub mod filter;
 mod local;
 mod producer;
 mod relay;
@@ -41,6 +43,7 @@ mod web;
 pub use api::*;
 pub use consumer::*;
 pub use coordinator::*;
+pub use filter::{FilterArgs, FilterConfig, FilterPipeline, PipelineReport};
 pub use local::*;
 pub use producer::*;
 pub use relay::*;

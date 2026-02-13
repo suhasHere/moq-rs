@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
 use moq_transport::{
     coding::TrackNamespace,
@@ -8,6 +10,7 @@ use moq_transport::{
     },
 };
 
+use crate::filter::FilterPipeline;
 use crate::{Locals, RemotesConsumer};
 
 /// Producer of tracks to a remote Subscriber
@@ -16,6 +19,7 @@ pub struct Producer {
     publisher: Publisher,
     locals: Locals,
     remotes: Option<RemotesConsumer>,
+    filter_pipeline: Option<Arc<FilterPipeline>>,
 }
 
 impl Producer {
@@ -24,7 +28,28 @@ impl Producer {
             publisher,
             locals,
             remotes,
+            filter_pipeline: None,
         }
+    }
+
+/// Creates a producer with a filter pipeline.
+    pub fn with_filter_pipeline(
+        publisher: Publisher,
+        locals: Locals,
+        remotes: Option<RemotesConsumer>,
+        filter_pipeline: Arc<FilterPipeline>,
+    ) -> Self {
+        Self {
+            publisher,
+            locals,
+            remotes,
+            filter_pipeline: Some(filter_pipeline),
+        }
+    }
+
+    /// Sets the filter pipeline.
+    pub fn set_filter_pipeline(&mut self, pipeline: Arc<FilterPipeline>) {
+        self.filter_pipeline = Some(pipeline);
     }
 
     pub async fn publish_namespace(
@@ -98,6 +123,23 @@ impl Producer {
     async fn serve_subscribe(self, subscribed: Subscribed) -> Result<(), anyhow::Error> {
         let namespace = subscribed.track_namespace.clone();
         let track_name = subscribed.track_name.clone();
+
+// Apply track filter if configured
+        if let Some(ref pipeline) = self.filter_pipeline {
+            if !pipeline.filter_track(&namespace, &track_name) {
+                log::info!(
+                    "subscribe rejected by track filter: {}/{}",
+                    namespace,
+                    track_name
+                );
+                let err = ServeError::not_found_ctx(format!(
+                    "track '{}/{}' rejected by filter policy",
+                    namespace, track_name
+                ));
+                subscribed.close(err.clone())?;
+                return Err(err.into());
+            }
+        }
 
         if let Some(track_info) = self
             .locals

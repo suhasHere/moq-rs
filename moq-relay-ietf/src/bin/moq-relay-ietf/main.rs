@@ -9,7 +9,7 @@ use url::Url;
 
 use api_coordinator::{ApiCoordinator, ApiCoordinatorConfig};
 use file_coordinator::FileCoordinator;
-use moq_relay_ietf::{Coordinator, Relay, RelayConfig, Web, WebConfig};
+use moq_relay_ietf::{filter::FilterArgs, Coordinator, Relay, RelayConfig, Web, WebConfig};
 
 #[derive(Parser, Clone)]
 pub struct Cli {
@@ -78,6 +78,10 @@ pub struct Cli {
     /// Only used when --api-url is specified.
     #[arg(long, default_value = "600")]
     pub api_ttl: u64,
+
+    /// Filter pipeline configuration.
+    #[command(flatten)]
+    pub filter: FilterArgs,
 }
 
 #[tokio::main]
@@ -131,6 +135,9 @@ async fn main() -> anyhow::Result<()> {
         Arc::new(FileCoordinator::new(&cli.coordinator_file, relay_url))
     };
 
+    // Create filter config from CLI args
+    let filter_config = cli.filter.to_config();
+
     // Create a QUIC server for media.
     let relay = Relay::new(RelayConfig {
         tls: tls.clone(),
@@ -141,6 +148,7 @@ async fn main() -> anyhow::Result<()> {
         node: cli.node,
         announce: cli.announce,
         coordinator,
+        filter_config,
     })?;
 
     if cli.dev {

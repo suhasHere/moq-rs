@@ -7,6 +7,7 @@ use moq_native_ietf::quic::{self, Endpoint};
 use url::Url;
 
 use crate::{
+    filter::{FilterConfig, FilterPipeline},
     Consumer, Coordinator, Locals, Producer, Remotes, RemotesConsumer, RemotesProducer, Session,
     SubscriberRegistry,
 };
@@ -49,6 +50,9 @@ pub struct RelayConfig {
 
     /// The coordinator for namespace/track registration and discovery.
     pub coordinator: Arc<dyn Coordinator>,
+
+    /// Filter pipeline configuration.
+    pub filter_config: FilterConfig,
 }
 
 /// MoQ Relay server.
@@ -60,6 +64,7 @@ pub struct Relay {
     remotes: Option<(RemotesProducer, RemotesConsumer)>,
     coordinator: Arc<dyn Coordinator>,
     subscriber_registry: SubscriberRegistry,
+    filter_pipeline: Arc<FilterPipeline>,
 }
 
 impl Relay {
@@ -112,6 +117,18 @@ impl Relay {
         // Create subscriber registry for SUBSCRIBE_NAMESPACE tracking
         let subscriber_registry = SubscriberRegistry::new();
 
+        // Create filter pipeline
+        let filter_pipeline = Arc::new(FilterPipeline::new(config.filter_config));
+
+        if filter_pipeline.config().stats_enabled {
+            log::info!(
+                "filter pipeline enabled with stats (interval: {}s)",
+                filter_pipeline.config().stats_interval_secs
+            );
+        } else {
+            log::info!("filter pipeline enabled");
+        }
+
         Ok(Self {
             quic_endpoints: endpoints,
             announce_url: config.announce,
@@ -120,7 +137,18 @@ impl Relay {
             remotes: Some(remotes),
             coordinator: config.coordinator,
             subscriber_registry,
+            filter_pipeline,
         })
+    }
+
+    /// Returns a reference to the filter pipeline.
+    pub fn filter_pipeline(&self) -> &Arc<FilterPipeline> {
+        &self.filter_pipeline
+    }
+
+    /// Returns the filter pipeline statistics report.
+    pub fn filter_stats(&self) -> crate::PipelineReport {
+        self.filter_pipeline.report()
     }
 
     /// Run the relay server.
@@ -154,10 +182,11 @@ impl Relay {
             let coordinator = self.coordinator.clone();
             let session = Session {
                 session,
-                producer: Some(Producer::new(
+                producer: Some(Producer::with_filter_pipeline(
                     publisher,
                     self.locals.clone(),
                     remotes.clone(),
+                    self.filter_pipeline.clone(),
                 )),
                 consumer: Some(Consumer::new(
                     subscriber,
@@ -226,6 +255,7 @@ impl Relay {
                     let forward = forward_producer.clone();
                     let coordinator = self.coordinator.clone();
                     let subscriber_registry = self.subscriber_registry.clone();
+                    let filter_pipeline = self.filter_pipeline.clone();
 
                     // Spawn a new task to handle the connection
                     tasks.push(async move {
@@ -243,12 +273,14 @@ impl Relay {
                         let session = Session {
                             session: moq_session,
                             producer: publisher.map(|publisher| {
-                                Producer::with_registry(
+                                let mut producer = Producer::with_registry(
                                     publisher,
                                     locals.clone(),
                                     remotes,
                                     subscriber_registry.clone(),
-                                )
+                                );
+                                producer.set_filter_pipeline(filter_pipeline.clone());
+                                producer
                             }),
                             consumer: subscriber.map(|subscriber| {
                                 Consumer::with_registry(

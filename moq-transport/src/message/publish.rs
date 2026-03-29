@@ -1,10 +1,10 @@
 use crate::coding::{Decode, DecodeError, Encode, EncodeError, KeyValuePairs, TrackNamespace};
+use crate::data::ExtensionHeaders;
 
 /// Sent by publisher to initiate a subscription to a track.
 ///
 /// Draft-16: Fields like group_order, content_exists, largest_location, forward
 /// have been moved to Parameters (Section 9.2.2).
-/// Note: Draft-16 PUBLISH does NOT include track_extensions.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Publish {
     /// The publish request ID
@@ -17,6 +17,9 @@ pub struct Publish {
 
     /// Optional parameters (may contain Forward, GroupOrder, LargestObject, PublisherPriority, etc.)
     pub params: KeyValuePairs,
+
+    /// Track extensions
+    pub track_extensions: ExtensionHeaders,
 }
 
 impl Decode for Publish {
@@ -28,6 +31,7 @@ impl Decode for Publish {
         let track_alias = u64::decode(r)?;
 
         let params = KeyValuePairs::decode(r)?;
+        let track_extensions = ExtensionHeaders::decode(r)?;
 
         Ok(Self {
             id,
@@ -35,6 +39,7 @@ impl Decode for Publish {
             track_name,
             track_alias,
             params,
+            track_extensions,
         })
     }
 }
@@ -48,6 +53,7 @@ impl Encode for Publish {
         self.track_alias.encode(w)?;
 
         self.params.encode(w)?;
+        self.track_extensions.encode(w)?;
 
         Ok(())
     }
@@ -71,6 +77,7 @@ mod tests {
             track_name: "audiotrack".to_string(),
             track_alias: 212,
             params: kvps.clone(),
+            track_extensions: Default::default(),
         };
         msg.encode(&mut buf).unwrap();
         let decoded = Publish::decode(&mut buf).unwrap();
@@ -87,6 +94,7 @@ mod tests {
             track_name: "audiotrack".to_string(),
             track_alias: 212,
             params: Default::default(),
+            track_extensions: Default::default(),
         };
         msg.encode(&mut buf).unwrap();
         let decoded = Publish::decode(&mut buf).unwrap();

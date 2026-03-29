@@ -471,4 +471,10 @@ impl Publisher {
     pub(super) async fn send_datagram(&mut self, data: bytes::Bytes) -> Result<(), SessionError> {
         Ok(self.webtransport.send_datagram(data).await?)
     }
+
+    /// Forward a PUBLISH message to the subscriber (used by relay for SUBSCRIBE_NAMESPACE flow).
+    /// This sends the message without tracking it for PUBLISH_OK response handling.
+    pub fn forward_publish(&mut self, msg: message::Publish) {
+        self.outgoing.push(msg.into()).ok();
+    }
 }

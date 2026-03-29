@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
 use moq_transport::{
-    coding::TrackNamespace,
+    coding::{KeyValuePairs, TrackNamespace},
+    message,
     serve::{ServeError, TracksReader},
     session::{
         PublishNamespace, Publisher, SessionError, SubscribeNamespaceReceived, Subscribed,
@@ -293,15 +294,24 @@ impl Producer {
                                     namespace_prefix
                                 );
                                 // Forward PUBLISH to the subscriber
-                                // The subscriber can then respond with PUBLISH_OK and receive data
-                                match self.publisher.publish_namespace(publish_notif.namespace.clone()).await {
-                                    Ok(_) => {
-                                        log::debug!("forwarded PUBLISH_NAMESPACE for {:?}", publish_notif.namespace);
-                                    }
-                                    Err(e) => {
-                                        log::warn!("failed to forward PUBLISH_NAMESPACE: {}", e);
-                                    }
-                                }
+                                // The subscriber can then respond with PUBLISH_OK if interested
+                                let request_id = self.publisher.next_track_alias(); // Use track alias counter for request IDs
+                                let publish_msg = message::Publish {
+                                    id: request_id,
+                                    track_namespace: publish_notif.namespace.clone(),
+                                    track_name: publish_notif.track_name.clone(),
+                                    track_alias: publish_notif.track_alias,
+                                    params: KeyValuePairs::new(),
+                                    track_extensions: Default::default(),
+                                };
+                                self.publisher.forward_publish(publish_msg);
+                                log::debug!(
+                                    "forwarded PUBLISH for {}/{} (request_id={}, track_alias={})",
+                                    publish_notif.namespace,
+                                    publish_notif.track_name,
+                                    request_id,
+                                    publish_notif.track_alias
+                                );
                             }
                             Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
                                 log::warn!("subscription lagged by {} messages", n);

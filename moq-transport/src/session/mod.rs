@@ -182,9 +182,10 @@ impl Session {
     /// and receiving and processing QUIC datagrams received
     pub async fn run(self) -> Result<(), SessionError> {
         tokio::select! {
-            res = Self::run_recv(self.recver, self.publisher, self.subscriber.clone(), self.mlog.clone()) => res,
+            res = Self::run_recv(self.recver, self.publisher.clone(), self.subscriber.clone(), self.mlog.clone()) => res,
             res = Self::run_send(self.sender, self.outgoing, self.mlog.clone()) => res,
             res = Self::run_streams(self.webtransport.clone(), self.subscriber.clone()) => res,
+            res = Self::run_bidi_streams(self.webtransport.clone(), self.publisher) => res,
             res = Self::run_datagrams(self.webtransport, self.subscriber) => res,
         }
     }
@@ -386,6 +387,52 @@ impl Session {
                         if let Err(err) = Subscriber::recv_stream(subscriber, stream).await {
                             log::warn!("failed to serve stream: {}", err);
                         };
+                    });
+                },
+                _ = tasks.next(), if !tasks.is_empty() => {},
+            };
+        }
+    }
+
+    /// Accepts bidirectional QUIC streams for messages like SUBSCRIBE_NAMESPACE.
+    /// In draft-16, SUBSCRIBE_NAMESPACE uses its own bidirectional stream.
+    async fn run_bidi_streams(
+        webtransport: web_transport::Session,
+        publisher: Option<Publisher>,
+    ) -> Result<(), SessionError> {
+        let mut tasks = FuturesUnordered::new();
+
+        loop {
+            tokio::select! {
+                res = webtransport.accept_bi() => {
+                    let (_send, recv) = res?;
+                    let mut publisher = publisher.clone().ok_or(SessionError::RoleViolation)?;
+
+                    tasks.push(async move {
+                        let mut reader = Reader::new(recv);
+
+                        // Read the message from the bidi stream
+                        let msg: message::Message = match reader.decode().await {
+                            Ok(msg) => msg,
+                            Err(e) => {
+                                log::warn!("failed to decode message on bidi stream: {}", e);
+                                return;
+                            }
+                        };
+
+                        log::debug!("received message on bidi stream: {:?}", msg);
+
+                        // Handle SUBSCRIBE_NAMESPACE on its dedicated bidi stream
+                        match msg {
+                            Message::SubscribeNamespace(subscribe_ns) => {
+                                if let Err(e) = publisher.recv_message(message::Subscriber::SubscribeNamespace(subscribe_ns)) {
+                                    log::warn!("failed to handle SUBSCRIBE_NAMESPACE: {}", e);
+                                }
+                            }
+                            other => {
+                                log::warn!("unexpected message type on bidi stream: {:?}", other);
+                            }
+                        }
                     });
                 },
                 _ = tasks.next(), if !tasks.is_empty() => {},

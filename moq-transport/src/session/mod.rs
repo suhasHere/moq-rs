@@ -181,12 +181,28 @@ impl Session {
     /// inbound control messages, receiving and processing new inbound uni-directional QUIC streams,
     /// and receiving and processing QUIC datagrams received
     pub async fn run(self) -> Result<(), SessionError> {
+        log::debug!("Session::run starting all tasks");
         tokio::select! {
-            res = Self::run_recv(self.recver, self.publisher.clone(), self.subscriber.clone(), self.mlog.clone()) => res,
-            res = Self::run_send(self.sender, self.outgoing, self.mlog.clone()) => res,
-            res = Self::run_streams(self.webtransport.clone(), self.subscriber.clone()) => res,
-            res = Self::run_bidi_streams(self.webtransport.clone(), self.publisher) => res,
-            res = Self::run_datagrams(self.webtransport, self.subscriber) => res,
+            res = Self::run_recv(self.recver, self.publisher.clone(), self.subscriber.clone(), self.mlog.clone()) => {
+                log::debug!("run_recv completed: {:?}", res);
+                res
+            },
+            res = Self::run_send(self.sender, self.outgoing, self.mlog.clone()) => {
+                log::debug!("run_send completed: {:?}", res);
+                res
+            },
+            res = Self::run_streams(self.webtransport.clone(), self.subscriber.clone()) => {
+                log::debug!("run_streams completed: {:?}", res);
+                res
+            },
+            res = Self::run_bidi_streams(self.webtransport.clone(), self.publisher) => {
+                log::debug!("run_bidi_streams completed: {:?}", res);
+                res
+            },
+            res = Self::run_datagrams(self.webtransport, self.subscriber) => {
+                log::debug!("run_datagrams completed: {:?}", res);
+                res
+            },
         }
     }
 
@@ -263,7 +279,9 @@ impl Session {
         mut subscriber: Option<Subscriber>,
         mlog: Option<Arc<Mutex<mlog::MlogWriter>>>,
     ) -> Result<(), SessionError> {
+        log::debug!("run_recv: starting control stream reader loop");
         loop {
+            log::trace!("run_recv: waiting for next message on control stream");
             let msg: message::Message = recver.decode().await?;
             log::debug!("received message: {:?}", msg);
 

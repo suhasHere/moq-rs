@@ -246,6 +246,49 @@ impl Locals {
         Some(track_info)
     }
 
+    /// Get or create track info, auto-registering the namespace if needed.
+    /// This supports the SUBSCRIBE_NAMESPACE flow where PUBLISH can arrive
+    /// without a prior PUBLISH_NAMESPACE.
+    pub fn get_or_create_track_info_auto_register(
+        &self,
+        namespace: &TrackNamespace,
+        track_name: &str,
+    ) -> Arc<TrackInfo> {
+        let mut lookup = self.lookup.lock().unwrap();
+
+        // First try to find an existing matching namespace entry
+        if let Some(entry) = Self::find_best_match_entry(&lookup, namespace) {
+            let mut tracks = entry.tracks.lock().unwrap();
+            return tracks
+                .entry(track_name.to_string())
+                .or_insert_with(|| {
+                    Arc::new(TrackInfo::new(namespace.clone(), track_name.to_string()))
+                })
+                .clone();
+        }
+
+        // No matching namespace found - auto-register for SUBSCRIBE_NAMESPACE flow
+        log::info!(
+            "auto-registering namespace {} for PUBLISH (no prior PUBLISH_NAMESPACE)",
+            namespace
+        );
+
+        let (writer, _request, reader) =
+            moq_transport::serve::Tracks::new(namespace.clone()).produce();
+
+        let entry = lookup.entry(namespace.clone()).or_insert(LocalsEntry {
+            reader,
+            writer,
+            tracks: Mutex::new(HashMap::new()),
+        });
+
+        let mut tracks = entry.tracks.lock().unwrap();
+        tracks
+            .entry(track_name.to_string())
+            .or_insert_with(|| Arc::new(TrackInfo::new(namespace.clone(), track_name.to_string())))
+            .clone()
+    }
+
     pub fn get_track_info(
         &self,
         namespace: &TrackNamespace,

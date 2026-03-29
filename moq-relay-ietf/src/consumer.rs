@@ -175,20 +175,11 @@ impl Consumer {
 
         log::info!("received PUBLISH for track: {}/{}", namespace, track_name);
 
-        let track_info = match self
+        // Use auto-register variant to support SUBSCRIBE_NAMESPACE flow
+        // where PUBLISH can arrive without prior PUBLISH_NAMESPACE
+        let track_info = self
             .locals
-            .get_or_create_track_info(&namespace, &track_name)
-        {
-            Some(info) => info,
-            None => {
-                log::warn!(
-                    "PUBLISH rejected: no PUBLISH_NAMESPACE registered for namespace {}",
-                    namespace
-                );
-                publish.reject(0x4, "Namespace not announced via PUBLISH_NAMESPACE")?;
-                return Err(ServeError::NotFound.into());
-            }
-        };
+            .get_or_create_track_info_auto_register(&namespace, &track_name);
 
         let writer = match track_info.publish_arrived() {
             Ok(w) => w,

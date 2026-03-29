@@ -20,10 +20,20 @@ pub enum ParameterType {
     Forward = 0x10,
     /// Used in: SUBSCRIBE, FETCH, REQUEST_UPDATE, PUBLISH_OK
     SubscriberPriority = 0x20,
-    /// Used in: SUBSCRIBE, PUBLISH_OK, REQUEST_UPDATE
+    /// Used in: SUBSCRIBE, PUBLISH_OK, REQUEST_UPDATE (renamed to SubscriptionLocationFilter per PR #1518)
     SubscriptionFilter = 0x21,
     /// Used in: SUBSCRIBE, SUBSCRIBE_OK, REQUEST_OK, PUBLISH, PUBLISH_OK, FETCH
     GroupOrder = 0x22,
+    /// Used in: SUBSCRIBE, FETCH - Filter by subgroup ID ranges (PR #1518)
+    SubgroupFilter = 0x25,
+    /// Used in: SUBSCRIBE, FETCH - Filter by object ID ranges (PR #1518)
+    ObjectFilter = 0x26,
+    /// Used in: SUBSCRIBE, FETCH - Filter by priority ranges (PR #1518)
+    PriorityFilter = 0x27,
+    /// Used in: SUBSCRIBE, FETCH - Filter by property value ranges (PR #1518)
+    PropertyFilter = 0x28,
+    /// Used in: SUBSCRIBE_NAMESPACE - Track filter for top-N selection (PR #1518)
+    TrackFilter = 0x29,
     /// Used in: PUBLISH, SUBSCRIBE_OK
     DynamicGroups = 0x30,
     /// Used in: PUBLISH_OK, SUBSCRIBE, REQUEST_UPDATE

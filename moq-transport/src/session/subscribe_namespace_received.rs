@@ -1,6 +1,7 @@
 use std::ops;
 
 use crate::coding::{ReasonPhrase, TrackNamespace};
+use crate::message::TrackFilter;
 use crate::watch::State;
 use crate::{message, serve::ServeError};
 
@@ -10,6 +11,8 @@ use super::Publisher;
 pub struct SubscribeNamespaceReceivedInfo {
     pub request_id: u64,
     pub namespace_prefix: TrackNamespace,
+    /// Optional track filter for top-N selection (from TRACK_FILTER parameter)
+    pub track_filter: Option<TrackFilter>,
 }
 
 struct SubscribeNamespaceReceivedState {
@@ -35,10 +38,12 @@ impl SubscribeNamespaceReceived {
         publisher: Publisher,
         request_id: u64,
         namespace_prefix: TrackNamespace,
+        track_filter: Option<TrackFilter>,
     ) -> (Self, SubscribeNamespaceReceivedRecv) {
         let info = SubscribeNamespaceReceivedInfo {
             request_id,
             namespace_prefix: namespace_prefix.clone(),
+            track_filter,
         };
 
         let (send, recv) = State::default().split();

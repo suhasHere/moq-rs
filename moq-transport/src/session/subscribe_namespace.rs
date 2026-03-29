@@ -47,12 +47,11 @@ impl SubscribeNs {
             namespace_prefix: namespace_prefix.clone(),
         };
 
-        subscriber.send_message(message::SubscribeNamespace {
-            id: request_id,
-            track_namespace_prefix: namespace_prefix,
-            forward: 1,
-            params: Default::default(),
-        });
+        subscriber.send_message(message::SubscribeNamespace::new(
+            request_id,
+            namespace_prefix,
+            1,
+        ));
 
         let (send, recv) = State::default().split();
 

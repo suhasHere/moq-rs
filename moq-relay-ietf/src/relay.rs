@@ -9,6 +9,7 @@ use url::Url;
 use crate::{
     filter::{FilterConfig, FilterPipeline},
     Consumer, Coordinator, Locals, Producer, Remotes, RemotesConsumer, RemotesProducer, Session,
+    SubscriberRegistry,
 };
 
 // A type alias for boxed future
@@ -63,6 +64,7 @@ pub struct Relay {
     remotes: Option<(RemotesProducer, RemotesConsumer)>,
     coordinator: Arc<dyn Coordinator>,
     filter_pipeline: Arc<FilterPipeline>,
+    subscriber_registry: SubscriberRegistry,
 }
 
 impl Relay {
@@ -124,6 +126,9 @@ impl Relay {
             log::info!("filter pipeline enabled");
         }
 
+        // Create subscriber registry for SUBSCRIBE_NAMESPACE tracking
+        let subscriber_registry = SubscriberRegistry::new();
+
         Ok(Self {
             quic_endpoints: endpoints,
             announce_url: config.announce,
@@ -132,6 +137,7 @@ impl Relay {
             remotes: Some(remotes),
             coordinator: config.coordinator,
             filter_pipeline,
+            subscriber_registry,
         })
     }
 
@@ -249,6 +255,7 @@ impl Relay {
                     let forward = forward_producer.clone();
                     let coordinator = self.coordinator.clone();
                     let filter_pipeline = self.filter_pipeline.clone();
+                    let subscriber_registry = self.subscriber_registry.clone();
 
                     // Spawn a new task to handle the connection
                     tasks.push(async move {
@@ -266,14 +273,23 @@ impl Relay {
                         let session = Session {
                             session: moq_session,
                             producer: publisher.map(|publisher| {
-                                Producer::with_filter_pipeline(
+                                Producer::with_registry(
                                     publisher,
                                     locals.clone(),
                                     remotes,
                                     filter_pipeline.clone(),
+                                    subscriber_registry.clone(),
                                 )
                             }),
-                            consumer: subscriber.map(|subscriber| Consumer::new(subscriber, locals, coordinator, forward)),
+                            consumer: subscriber.map(|subscriber| {
+                                Consumer::with_registry(
+                                    subscriber,
+                                    locals,
+                                    coordinator,
+                                    forward,
+                                    subscriber_registry,
+                                )
+                            }),
                         };
 
                         if let Err(err) = session.run().await {

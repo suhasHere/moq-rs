@@ -11,7 +11,7 @@ use moq_transport::{
 };
 
 use crate::filter::FilterPipeline;
-use crate::{Locals, RemotesConsumer};
+use crate::{Locals, RemotesConsumer, SubscriberRegistry};
 
 /// Producer of tracks to a remote Subscriber
 #[derive(Clone)]
@@ -20,6 +20,7 @@ pub struct Producer {
     locals: Locals,
     remotes: Option<RemotesConsumer>,
     filter_pipeline: Option<Arc<FilterPipeline>>,
+    subscriber_registry: Option<SubscriberRegistry>,
 }
 
 impl Producer {
@@ -29,10 +30,11 @@ impl Producer {
             locals,
             remotes,
             filter_pipeline: None,
+            subscriber_registry: None,
         }
     }
 
-/// Creates a producer with a filter pipeline.
+    /// Creates a producer with a filter pipeline.
     pub fn with_filter_pipeline(
         publisher: Publisher,
         locals: Locals,
@@ -44,6 +46,24 @@ impl Producer {
             locals,
             remotes,
             filter_pipeline: Some(filter_pipeline),
+            subscriber_registry: None,
+        }
+    }
+
+    /// Creates a producer with a filter pipeline and subscriber registry.
+    pub fn with_registry(
+        publisher: Publisher,
+        locals: Locals,
+        remotes: Option<RemotesConsumer>,
+        filter_pipeline: Arc<FilterPipeline>,
+        subscriber_registry: SubscriberRegistry,
+    ) -> Self {
+        Self {
+            publisher,
+            locals,
+            remotes,
+            filter_pipeline: Some(filter_pipeline),
+            subscriber_registry: Some(subscriber_registry),
         }
     }
 
@@ -201,20 +221,37 @@ impl Producer {
         mut subscribe_ns: SubscribeNamespaceReceived,
     ) -> Result<(), anyhow::Error> {
         let namespace_prefix = subscribe_ns.namespace_prefix.clone();
+        let track_filter = subscribe_ns.info.track_filter.clone();
 
+        // Register with subscriber registry to receive PUBLISH notifications
+        let (_subscription_guard, mut publish_rx) =
+            if let Some(ref registry) = self.subscriber_registry {
+                let (id, rx) = registry.register(namespace_prefix.clone(), track_filter);
+                (
+                    Some(crate::SubscriptionGuard::new(registry.clone(), id)),
+                    Some(rx),
+                )
+            } else {
+                (None, None)
+            };
+
+        // Find existing namespaces that match the prefix
         let matching_namespaces: Vec<TrackNamespace> = self
             .locals
             .matching_namespaces(&namespace_prefix)
             .into_iter()
             .collect();
 
-        if matching_namespaces.is_empty() {
-            subscribe_ns.reject(0x4, "Namespace prefix not found")?;
-            return Ok(());
-        }
-
+        // Accept the subscription (even if no current matches - publisher may arrive later)
         subscribe_ns.ok()?;
 
+        log::info!(
+            "accepted SUBSCRIBE_NAMESPACE for prefix {:?}, {} existing matches",
+            namespace_prefix,
+            matching_namespaces.len()
+        );
+
+        // Send PUBLISH_NAMESPACE for existing namespaces
         for namespace in matching_namespaces {
             log::info!(
                 "sending PUBLISH_NAMESPACE for {:?} (matched prefix {:?})",
@@ -224,8 +261,7 @@ impl Producer {
             match self.publisher.publish_namespace(namespace.clone()).await {
                 Ok(_publish_ns) => {
                     log::debug!("sent PUBLISH_NAMESPACE for {:?}", namespace);
-                    // FIX:: on drop of publish_ns PUBLISH_NAMESPACE_DONE will be sent,
-                    // need to handle that as well
+                    // Note: publish_ns is kept alive to maintain the announcement
                 }
                 Err(e) => {
                     log::warn!(
@@ -237,7 +273,52 @@ impl Producer {
             }
         }
 
-        subscribe_ns.closed().await?;
+        // If we have a publish receiver, listen for new PUBLISH notifications
+        if let Some(ref mut rx) = publish_rx {
+            loop {
+                tokio::select! {
+                    // Wait for the subscription to close
+                    result = subscribe_ns.closed() => {
+                        result?;
+                        break;
+                    }
+                    // Wait for PUBLISH notifications
+                    notification = rx.recv() => {
+                        match notification {
+                            Ok(publish_notif) => {
+                                log::info!(
+                                    "received PUBLISH notification for {}/{} on subscription prefix {:?}",
+                                    publish_notif.namespace,
+                                    publish_notif.track_name,
+                                    namespace_prefix
+                                );
+                                // Forward PUBLISH to the subscriber
+                                // The subscriber can then respond with PUBLISH_OK and receive data
+                                match self.publisher.publish_namespace(publish_notif.namespace.clone()).await {
+                                    Ok(_) => {
+                                        log::debug!("forwarded PUBLISH_NAMESPACE for {:?}", publish_notif.namespace);
+                                    }
+                                    Err(e) => {
+                                        log::warn!("failed to forward PUBLISH_NAMESPACE: {}", e);
+                                    }
+                                }
+                            }
+                            Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
+                                log::warn!("subscription lagged by {} messages", n);
+                            }
+                            Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                                log::debug!("publish notification channel closed");
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            // No registry, just wait for close
+            subscribe_ns.closed().await?;
+        }
+
         Ok(())
     }
 

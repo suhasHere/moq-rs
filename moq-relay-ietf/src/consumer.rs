@@ -9,7 +9,7 @@ use moq_transport::{
     session::{PublishNamespaceReceived, PublishReceived, SessionError, Subscriber},
 };
 
-use crate::{Coordinator, Locals, Producer};
+use crate::{Coordinator, Locals, Producer, SubscriberRegistry};
 
 /// Consumer of tracks from a remote Publisher
 #[derive(Clone)]
@@ -18,6 +18,7 @@ pub struct Consumer {
     locals: Locals,
     coordinator: Arc<dyn Coordinator>,
     forward: Option<Producer>, // Forward all announcements to this subscriber
+    subscriber_registry: Option<SubscriberRegistry>,
 }
 
 impl Consumer {
@@ -32,6 +33,24 @@ impl Consumer {
             locals,
             coordinator,
             forward,
+            subscriber_registry: None,
+        }
+    }
+
+    /// Creates a consumer with a subscriber registry for PUBLISH notifications.
+    pub fn with_registry(
+        subscriber: Subscriber,
+        locals: Locals,
+        coordinator: Arc<dyn Coordinator>,
+        forward: Option<Producer>,
+        subscriber_registry: SubscriberRegistry,
+    ) -> Self {
+        Self {
+            subscriber,
+            locals,
+            coordinator,
+            forward,
+            subscriber_registry: Some(subscriber_registry),
         }
     }
 
@@ -152,6 +171,7 @@ impl Consumer {
     async fn serve_publish(self, publish: PublishReceived) -> Result<(), anyhow::Error> {
         let namespace = publish.info.track_namespace.clone();
         let track_name = publish.info.track_name.clone();
+        let track_alias = publish.info.track_alias;
 
         log::info!("received PUBLISH for track: {}/{}", namespace, track_name);
 
@@ -214,6 +234,20 @@ impl Consumer {
             namespace,
             track_name
         );
+
+        // Notify subscriber registry of the new PUBLISH
+        // This will trigger forwarding to matching SUBSCRIBE_NAMESPACE subscriptions
+        if let Some(ref registry) = self.subscriber_registry {
+            let notified = registry.notify_publish(&namespace, &track_name, track_alias);
+            if notified > 0 {
+                log::info!(
+                    "notified {} SUBSCRIBE_NAMESPACE subscriptions of PUBLISH {}/{}",
+                    notified,
+                    namespace,
+                    track_name
+                );
+            }
+        }
 
         Ok(())
     }

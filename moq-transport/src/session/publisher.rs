@@ -200,7 +200,6 @@ impl Publisher {
             track_name: track.name.clone(),
             track_alias,
             params,
-            track_extensions: Default::default(),
         };
 
         let (send, recv) = Published::new(self.clone(), msg, self.mlog.clone());
@@ -237,7 +236,6 @@ impl Publisher {
             track_name: track.name.clone(),
             track_alias,
             params,
-            track_extensions: Default::default(),
         };
 
         let (send, recv) = Published::new(self.clone(), msg, self.mlog.clone());

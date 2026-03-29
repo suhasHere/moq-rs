@@ -1,4 +1,4 @@
-use crate::coding::{Decode, DecodeError, Encode, EncodeError, KeyValuePairs};
+use crate::coding::{Decode, DecodeError, Encode, EncodeError, KeyValuePairs, TrackExtensions};
 
 /// Sent by the publisher to accept a Subscribe.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -9,11 +9,11 @@ pub struct SubscribeOk {
     /// The identifier used for this track in Subgroups or Datagrams.
     pub track_alias: u64,
 
-    /// Subscribe Parameters
+    /// Subscribe Parameters (has count prefix per spec)
     pub params: KeyValuePairs,
 
-    /// Track extensions
-    pub track_extensions: KeyValuePairs,
+    /// Track extensions (NO prefix per draft-16 Section 9.10 - reads until end of message)
+    pub track_extensions: TrackExtensions,
 }
 
 impl Decode for SubscribeOk {
@@ -21,7 +21,8 @@ impl Decode for SubscribeOk {
         let id = u64::decode(r)?;
         let track_alias = u64::decode(r)?;
         let params = KeyValuePairs::decode(r)?;
-        let track_extensions = KeyValuePairs::decode(r)?;
+        // Track extensions have NO prefix - read until end of message
+        let track_extensions = TrackExtensions::decode(r)?;
 
         Ok(Self {
             id,
@@ -56,13 +57,34 @@ mod tests {
         let mut kvps = KeyValuePairs::new();
         kvps.set_bytesvalue(123, vec![0x00, 0x01, 0x02, 0x03]);
 
+        // Track extensions (no prefix)
+        let mut ext = TrackExtensions::new();
+        ext.set_intvalue(2, 42);
+
         let msg = SubscribeOk {
             id: 12345,
             track_alias: 100,
-            params: kvps.clone(),
-            track_extensions: kvps,
+            params: kvps,
+            track_extensions: ext,
         };
         msg.encode(&mut buf).unwrap();
+        let decoded = SubscribeOk::decode(&mut buf).unwrap();
+        assert_eq!(decoded, msg);
+    }
+
+    #[test]
+    fn encode_decode_empty_extensions() {
+        let mut buf = BytesMut::new();
+
+        let msg = SubscribeOk {
+            id: 0,
+            track_alias: 0,
+            params: KeyValuePairs::new(),
+            track_extensions: TrackExtensions::new(),
+        };
+        msg.encode(&mut buf).unwrap();
+        // Expected: id=0 (1 byte), track_alias=0 (1 byte), params_count=0 (1 byte), NO track_extensions bytes
+        assert_eq!(buf.to_vec(), vec![0x00, 0x00, 0x00]);
         let decoded = SubscribeOk::decode(&mut buf).unwrap();
         assert_eq!(decoded, msg);
     }

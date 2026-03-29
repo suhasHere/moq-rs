@@ -31,7 +31,9 @@ impl Decode for Publish {
         let track_alias = u64::decode(r)?;
 
         let params = KeyValuePairs::decode(r)?;
-        let track_extensions = ExtensionHeaders::decode(r)?;
+
+        // Track Extensions use remaining bytes (no length prefix per draft-16)
+        let track_extensions = ExtensionHeaders::decode_remaining_bytes(r)?;
 
         Ok(Self {
             id,

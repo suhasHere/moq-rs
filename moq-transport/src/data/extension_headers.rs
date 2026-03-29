@@ -46,6 +46,38 @@ impl ExtensionHeaders {
     }
 }
 
+impl ExtensionHeaders {
+    /// Decode extension headers from remaining bytes (no length prefix).
+    /// Used for Track Extensions in PUBLISH where the length is implicit from the message.
+    pub fn decode_remaining_bytes<R: bytes::Buf>(r: &mut R) -> Result<Self, DecodeError> {
+        if !r.has_remaining() {
+            return Ok(ExtensionHeaders::new());
+        }
+
+        let mut kvps = Vec::new();
+        let mut prev_key: u64 = 0;
+
+        while r.has_remaining() {
+            // Read delta type and reconstruct absolute key
+            let delta = u64::decode(r)?;
+            let key = prev_key.checked_add(delta).ok_or_else(|| {
+                log::error!(
+                    "[ExtHdr] Delta type overflow: prev_key={}, delta={}",
+                    prev_key,
+                    delta
+                );
+                DecodeError::BoundsExceeded(crate::coding::BoundsExceeded)
+            })?;
+
+            let kvp = KeyValuePair::decode_value(key, r)?;
+            kvps.push(kvp);
+            prev_key = key;
+        }
+
+        Ok(ExtensionHeaders(kvps))
+    }
+}
+
 impl Decode for ExtensionHeaders {
     /// Decode extension headers with delta-encoded Type fields (draft-16 Section 1.4.2).
     fn decode<R: bytes::Buf>(r: &mut R) -> Result<Self, DecodeError> {

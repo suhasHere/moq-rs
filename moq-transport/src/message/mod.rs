@@ -83,13 +83,18 @@ macro_rules! message_types {
 		impl Decode for Message {
 			fn decode<R: bytes::Buf>(r: &mut R) -> Result<Self, DecodeError> {
 				let t = u64::decode(r)?;
-				let _len = u16::decode(r)?;
+				let len = u16::decode(r)? as usize;
 
-				// TODO: Check the length of the message.
+				// Read exactly len bytes into a sub-buffer to properly handle Track Extensions
+				if r.remaining() < len {
+					return Err(DecodeError::More(len - r.remaining()));
+				}
+				let payload = r.copy_to_bytes(len);
+				let mut payload_reader = std::io::Cursor::new(payload);
 
 				match t {
 					$($val => {
-						let msg = $name::decode(r)?;
+						let msg = $name::decode(&mut payload_reader)?;
 						Ok(Self::$name(msg))
 					})*
 					_ => Err(DecodeError::InvalidMessage(t)),

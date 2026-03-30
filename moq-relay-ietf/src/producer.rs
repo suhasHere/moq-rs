@@ -308,33 +308,38 @@ impl Producer {
                                 ) {
                                     let track_reader = track_info.get_reader();
 
-                                    // Use publisher.publish() which properly tracks the PUBLISH
+                                    // Use publisher.publish() which sends PUBLISH with forward=1
+                                    // This allows forwarding objects immediately
                                     let mut publisher = self.publisher.clone();
+                                    let ns = publish_notif.namespace.clone();
+                                    let name = publish_notif.track_name.clone();
                                     tokio::spawn(async move {
                                         match publisher.publish(track_reader.clone()).await {
                                             Ok(published) => {
                                                 log::info!(
-                                                    "forwarded PUBLISH for {}/{}, streaming immediately",
-                                                    publish_notif.namespace,
-                                                    publish_notif.track_name
+                                                    "forwarded PUBLISH for {}/{} with forward=1, streaming immediately",
+                                                    ns, name
                                                 );
                                                 // serve_immediately() starts streaming without waiting for PUBLISH_OK
-                                                // This avoids missing frames during the round trip delay
-                                                if let Err(e) = published.serve_immediately(track_reader).await {
-                                                    log::warn!(
-                                                        "failed to serve track {}/{}: {}",
-                                                        publish_notif.namespace,
-                                                        publish_notif.track_name,
-                                                        e
-                                                    );
+                                                // Since forward=1, subscriber expects data immediately
+                                                // If subscriber sends error, serve will end and we cleanup
+                                                match published.serve_immediately(track_reader).await {
+                                                    Ok(()) => {
+                                                        log::info!("track {}/{} serving completed", ns, name);
+                                                    }
+                                                    Err(e) => {
+                                                        log::warn!(
+                                                            "track {}/{} serving ended: {}",
+                                                            ns, name, e
+                                                        );
+                                                        // Cleanup handled by Published drop
+                                                    }
                                                 }
                                             }
                                             Err(e) => {
                                                 log::warn!(
                                                     "failed to publish track {}/{}: {}",
-                                                    publish_notif.namespace,
-                                                    publish_notif.track_name,
-                                                    e
+                                                    ns, name, e
                                                 );
                                             }
                                         }

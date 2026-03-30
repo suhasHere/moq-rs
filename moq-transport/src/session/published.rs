@@ -275,8 +275,9 @@ impl Published {
         state: State<PublishedState>,
         mlog: Option<Arc<Mutex<mlog::MlogWriter>>>,
     ) -> Result<(), SessionError> {
-        log::debug!(
-            "[PUBLISHED] serve_subgroup: starting - group_id={}, subgroup_id={:?}, priority={}",
+        log::info!(
+            "[PUBLISHED] serve_subgroup: STARTING - track_alias={}, group_id={}, subgroup_id={:?}, priority={}",
+            header.track_alias,
             subgroup_reader.group_id,
             subgroup_reader.subgroup_id,
             subgroup_reader.priority
@@ -287,7 +288,7 @@ impl Published {
 
         let mut writer = Writer::new(send_stream);
 
-        log::debug!(
+        log::info!(
             "[PUBLISHED] serve_subgroup: sending header - track_alias={}, group_id={}, subgroup_id={:?}, priority={:?}, header_type={:?}",
             header.track_alias,
             header.group_id,

@@ -505,10 +505,13 @@ impl Subscriber {
         stream_header: data::StreamHeader,
         mlog: Option<Arc<Mutex<mlog::MlogWriter>>>,
     ) -> Result<(), SessionError> {
-        let track_alias = stream_header.subgroup_header.as_ref().unwrap().track_alias;
-        log::trace!(
-            "[SUBSCRIBER] recv_stream_inner: processing stream for track_alias={}",
-            track_alias
+        let subgroup_hdr = stream_header.subgroup_header.as_ref().unwrap();
+        let track_alias = subgroup_hdr.track_alias;
+        log::info!(
+            "[SUBSCRIBER] recv_stream_inner: INCOMING stream - track_alias={}, group_id={}, subgroup_id={:?}",
+            track_alias,
+            subgroup_hdr.group_id,
+            subgroup_hdr.subgroup_id
         );
 
         enum Writer {

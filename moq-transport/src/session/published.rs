@@ -155,6 +155,28 @@ impl Published {
         res
     }
 
+    /// Serve using a pre-acquired TrackReaderMode.
+    /// Use this when you need to acquire the mode early (before network round trips)
+    /// to avoid missing frames in late-join scenarios.
+    pub async fn serve_mode(mut self, mode: TrackReaderMode) -> Result<(), SessionError> {
+        let res = self.serve_mode_inner(mode).await;
+        if let Err(err) = &res {
+            self.close(err.clone().into())?;
+        }
+        res
+    }
+
+    /// Serve immediately without waiting for PUBLISH_OK.
+    /// Use this for relay scenarios where you want to start forwarding data right away.
+    /// The subscriber will receive data as soon as they're ready.
+    pub async fn serve_immediately(mut self, track: serve::TrackReader) -> Result<(), SessionError> {
+        let res = self.serve_immediately_inner(track).await;
+        if let Err(err) = &res {
+            self.close(err.clone().into())?;
+        }
+        res
+    }
+
     async fn serve_inner(&mut self, track: serve::TrackReader) -> Result<(), SessionError> {
         self.ok().await?;
 
@@ -167,6 +189,37 @@ impl Published {
             self.closed().await?;
             return Ok(());
         }
+
+        match track.mode().await? {
+            TrackReaderMode::Stream(_stream) => panic!("deprecated"),
+            TrackReaderMode::Subgroups(subgroups) => self.serve_subgroups(subgroups).await,
+            TrackReaderMode::Datagrams(datagrams) => self.serve_datagrams(datagrams).await,
+        }
+    }
+
+    async fn serve_mode_inner(&mut self, mode: TrackReaderMode) -> Result<(), SessionError> {
+        self.ok().await?;
+
+        let forward = {
+            let state = self.state.lock();
+            state.forward
+        };
+
+        if !forward {
+            self.closed().await?;
+            return Ok(());
+        }
+
+        match mode {
+            TrackReaderMode::Stream(_stream) => panic!("deprecated"),
+            TrackReaderMode::Subgroups(subgroups) => self.serve_subgroups(subgroups).await,
+            TrackReaderMode::Datagrams(datagrams) => self.serve_datagrams(datagrams).await,
+        }
+    }
+
+    async fn serve_immediately_inner(&mut self, track: serve::TrackReader) -> Result<(), SessionError> {
+        // Don't wait for PUBLISH_OK - start streaming immediately
+        // This is useful for relay scenarios where we want minimal latency
 
         match track.mode().await? {
             TrackReaderMode::Stream(_stream) => panic!("deprecated"),

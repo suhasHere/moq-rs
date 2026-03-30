@@ -309,18 +309,18 @@ impl Producer {
                                     let track_reader = track_info.get_reader();
 
                                     // Use publisher.publish() which properly tracks the PUBLISH
-                                    // and will stream data when PUBLISH_OK is received
                                     let mut publisher = self.publisher.clone();
                                     tokio::spawn(async move {
                                         match publisher.publish(track_reader.clone()).await {
                                             Ok(published) => {
                                                 log::info!(
-                                                    "forwarded PUBLISH for {}/{}, waiting for PUBLISH_OK",
+                                                    "forwarded PUBLISH for {}/{}, streaming immediately",
                                                     publish_notif.namespace,
                                                     publish_notif.track_name
                                                 );
-                                                // serve() will wait for PUBLISH_OK then stream data
-                                                if let Err(e) = published.serve(track_reader).await {
+                                                // serve_immediately() starts streaming without waiting for PUBLISH_OK
+                                                // This avoids missing frames during the round trip delay
+                                                if let Err(e) = published.serve_immediately(track_reader).await {
                                                     log::warn!(
                                                         "failed to serve track {}/{}: {}",
                                                         publish_notif.namespace,

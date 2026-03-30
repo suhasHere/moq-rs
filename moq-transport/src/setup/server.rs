@@ -18,8 +18,7 @@ impl Decode for Server {
             return Err(DecodeError::InvalidMessage(typ));
         }
 
-        // Draft-16: Length is varint
-        let _len = u64::decode(r)?;
+        let _len = u16::decode(r)?;
         // TODO: Check the length of the message.
 
         let params = KeyValuePairs::decode(r)?;
@@ -41,8 +40,11 @@ impl Encode for Server {
 
         self.params.encode(&mut buf).unwrap();
 
-        // Draft-16: Length is varint
-        (buf.len() as u64).encode(w)?;
+        // Make sure buf.len() <= u16::MAX
+        if buf.len() > u16::MAX as usize {
+            return Err(EncodeError::MsgBoundsExceeded);
+        }
+        (buf.len() as u16).encode(w)?;
 
         // At least don't encode the message twice.
         // Instead, write the buffer directly to the writer.
@@ -70,13 +72,13 @@ mod tests {
 
         server.encode(&mut buf).unwrap();
 
-        // Draft-16: no Versions field, just Type + Length (varint) + Parameters
+        // Draft-16: no Versions field, just Type + Length + Parameters
         #[rustfmt::skip]
         assert_eq!(
             buf.to_vec(),
             vec![
                 0x21, // Type (SERVER_SETUP)
-                0x04, // Length = 4 bytes (varint)
+                0x00, 0x04, // Length = 4 bytes
                 0x01, // 1 Parameter (count)
                 // Delta=2 (MaxRequestId), Value=1000
                 0x02, 0x43, 0xe8,

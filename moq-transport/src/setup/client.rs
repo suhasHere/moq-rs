@@ -18,8 +18,7 @@ impl Decode for Client {
             return Err(DecodeError::InvalidMessage(typ));
         }
 
-        // Draft-16: Length is varint
-        let _len = u64::decode(r)?;
+        let _len = u16::decode(r)?;
         // TODO: Check the length of the message.
 
         let params = KeyValuePairs::decode(r)?;
@@ -42,8 +41,11 @@ impl Encode for Client {
 
         self.params.encode(&mut buf).unwrap();
 
-        // Draft-16: Length is varint
-        (buf.len() as u64).encode(w)?;
+        // Make sure buf.len() <= u16::MAX
+        if buf.len() > u16::MAX as usize {
+            return Err(EncodeError::MsgBoundsExceeded);
+        }
+        (buf.len() as u16).encode(w)?;
 
         // At least don't encode the message twice.
         // Instead, write the buffer directly to the writer.
@@ -70,13 +72,13 @@ mod tests {
         let client = Client { params };
         client.encode(&mut buf).unwrap();
 
-        // Draft-16: no Versions field, just Type + Length (varint) + Parameters
+        // Draft-16: no Versions field, just Type + Length + Parameters
         #[rustfmt::skip]
         assert_eq!(
             buf.to_vec(),
             vec![
                 0x20, // Type (CLIENT_SETUP)
-                0x0b, // Length = 11 bytes (varint)
+                0x00, 0x0b, // Length = 11 bytes
                 0x01, // 1 Parameter (count)
                 // Delta=1 (Path), Length=8, "testpath"
                 0x01, 0x08, 0x74, 0x65, 0x73, 0x74, 0x70, 0x61, 0x74, 0x68,

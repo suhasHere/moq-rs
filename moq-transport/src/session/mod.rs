@@ -262,6 +262,22 @@ impl Session {
                 }
             }
 
+            // Hex dump outgoing control message for debugging
+            {
+                use crate::coding::Encode;
+                let mut debug_buf = Vec::new();
+                if msg.encode(&mut debug_buf).is_ok() {
+                    let hex: Vec<String> = debug_buf.iter().map(|b| format!("{:02x}", b)).collect();
+                    log::info!(
+                        "[CONTROL TX] {} (id={}) len={} hex=[{}]",
+                        msg.name(),
+                        msg.id(),
+                        debug_buf.len(),
+                        hex.join(" ")
+                    );
+                }
+            }
+
             sender.encode(&msg).await?;
         }
 

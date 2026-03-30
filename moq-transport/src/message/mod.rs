@@ -85,7 +85,8 @@ macro_rules! message_types {
 		impl Decode for Message {
 			fn decode<R: bytes::Buf>(r: &mut R) -> Result<Self, DecodeError> {
 				let t = u64::decode(r)?;
-				let len = u16::decode(r)? as usize;
+				// Draft-16: Length is varint, not u16
+				let len = u64::decode(r)? as usize;
 
 				// Read exactly len bytes into a sub-buffer to properly handle Track Extensions
 				if r.remaining() < len {
@@ -117,10 +118,8 @@ macro_rules! message_types {
                         //       write the length later, to avoid the copy of the message bytes?
 						let mut buf = Vec::new();
 						m.encode(&mut buf).unwrap();
-                        if buf.len() > u16::MAX as usize {
-                            return Err(EncodeError::MsgBoundsExceeded);
-                        }
-                        (buf.len() as u16).encode(w)?;
+                        // Draft-16: Length is varint, not u16
+                        (buf.len() as u64).encode(w)?;
 
 						// At least don't encode the message twice.
 						// Instead, write the buffer directly to the writer.

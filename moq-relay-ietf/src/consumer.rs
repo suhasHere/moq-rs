@@ -118,6 +118,19 @@ impl Consumer {
 
         publish_ns.ok()?;
 
+        // Notify subscriber registry of the new PUBLISH_NAMESPACE
+        // This will trigger forwarding to matching SUBSCRIBE_NAMESPACE subscriptions
+        if let Some(ref registry) = self.subscriber_registry {
+            let notified = registry.notify_publish_namespace(&publish_ns.namespace);
+            if notified > 0 {
+                log::info!(
+                    "notified {} SUBSCRIBE_NAMESPACE subscriptions of PUBLISH_NAMESPACE {:?}",
+                    notified,
+                    publish_ns.namespace
+                );
+            }
+        }
+
         if let Some(mut forward) = self.forward.clone() {
             let reader_clone = reader.clone();
             tasks.push(

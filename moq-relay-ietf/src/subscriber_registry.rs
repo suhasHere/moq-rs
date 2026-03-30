@@ -14,6 +14,8 @@ pub struct NamespaceSubscription {
     pub track_filter: Option<TrackFilter>,
     /// Channel to send PUBLISH notifications to this subscriber
     pub publish_tx: broadcast::Sender<PublishNotification>,
+    /// Channel to send PUBLISH_NAMESPACE notifications to this subscriber
+    pub publish_ns_tx: broadcast::Sender<PublishNamespaceNotification>,
 }
 
 /// Notification sent when a PUBLISH arrives that matches a subscription
@@ -22,6 +24,12 @@ pub struct PublishNotification {
     pub namespace: TrackNamespace,
     pub track_name: String,
     pub track_alias: u64,
+}
+
+/// Notification sent when a PUBLISH_NAMESPACE arrives that matches a subscription
+#[derive(Clone, Debug)]
+pub struct PublishNamespaceNotification {
+    pub namespace: TrackNamespace,
 }
 
 /// Registry for tracking active SUBSCRIBE_NAMESPACE subscriptions
@@ -51,31 +59,37 @@ impl SubscriberRegistry {
     }
 
     /// Register a SUBSCRIBE_NAMESPACE subscription
-    /// Returns (subscription_id, receiver for PUBLISH notifications)
+    /// Returns (subscription_id, receiver for PUBLISH notifications, receiver for PUBLISH_NAMESPACE notifications)
     pub fn register(
         &self,
         prefix: TrackNamespace,
         track_filter: Option<TrackFilter>,
-    ) -> (u64, broadcast::Receiver<PublishNotification>) {
+    ) -> (
+        u64,
+        broadcast::Receiver<PublishNotification>,
+        broadcast::Receiver<PublishNamespaceNotification>,
+    ) {
         let mut inner = self.inner.lock().unwrap();
 
         let id = inner.next_id;
         inner.next_id += 1;
 
-        // Create a broadcast channel for PUBLISH notifications
-        let (tx, rx) = broadcast::channel(64);
+        // Create broadcast channels for PUBLISH and PUBLISH_NAMESPACE notifications
+        let (publish_tx, publish_rx) = broadcast::channel(64);
+        let (publish_ns_tx, publish_ns_rx) = broadcast::channel(64);
 
         let subscription = NamespaceSubscription {
             prefix,
             track_filter,
-            publish_tx: tx,
+            publish_tx,
+            publish_ns_tx,
         };
 
         inner.subscriptions.insert(id, subscription);
 
         log::debug!("registered namespace subscription id={}", id);
 
-        (id, rx)
+        (id, publish_rx, publish_ns_rx)
     }
 
     /// Unregister a subscription
@@ -119,6 +133,40 @@ impl SubscriberRegistry {
                         id,
                         namespace,
                         track_name
+                    );
+                    notified += 1;
+                }
+            }
+        }
+
+        notified
+    }
+
+    /// Find all subscriptions that match a given namespace and notify them of a PUBLISH_NAMESPACE
+    /// Returns the number of matching subscriptions notified
+    pub fn notify_publish_namespace(&self, namespace: &TrackNamespace) -> usize {
+        let inner = self.inner.lock().unwrap();
+
+        let notification = PublishNamespaceNotification {
+            namespace: namespace.clone(),
+        };
+
+        let mut notified = 0;
+
+        for (id, sub) in inner.subscriptions.iter() {
+            // Check if the namespace matches the subscription prefix
+            if Self::prefix_matches(&sub.prefix, namespace) {
+                if let Err(e) = sub.publish_ns_tx.send(notification.clone()) {
+                    log::warn!(
+                        "failed to notify subscription id={} of PUBLISH_NAMESPACE: {}",
+                        id,
+                        e
+                    );
+                } else {
+                    log::debug!(
+                        "notified subscription id={} of PUBLISH_NAMESPACE {:?}",
+                        id,
+                        namespace
                     );
                     notified += 1;
                 }
@@ -205,8 +253,8 @@ mod tests {
     fn test_register_unregister() {
         let registry = SubscriberRegistry::new();
 
-        let (id1, _rx1) = registry.register(ns("live"), None);
-        let (id2, _rx2) = registry.register(ns("live/room1"), None);
+        let (id1, _rx1, _rx1_ns) = registry.register(ns("live"), None);
+        let (id2, _rx2, _rx2_ns) = registry.register(ns("live/room1"), None);
 
         assert_eq!(registry.matching_subscriptions(&ns("live/room1/track")).len(), 2);
 
@@ -223,7 +271,7 @@ mod tests {
     async fn test_notify_publish() {
         let registry = SubscriberRegistry::new();
 
-        let (id, mut rx) = registry.register(ns("live"), None);
+        let (id, mut rx, _rx_ns) = registry.register(ns("live"), None);
 
         let notified = registry.notify_publish(&ns("live/stream1"), "video", 100);
         assert_eq!(notified, 1);

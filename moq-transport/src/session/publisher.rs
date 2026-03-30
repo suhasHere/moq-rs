@@ -477,4 +477,10 @@ impl Publisher {
     pub fn forward_publish(&mut self, msg: message::Publish) {
         self.outgoing.push(msg.into()).ok();
     }
+
+    /// Forward a NAMESPACE message to the subscriber (used by relay for SUBSCRIBE_NAMESPACE flow).
+    /// This announces a namespace that matches the subscriber's SUBSCRIBE_NAMESPACE prefix.
+    pub fn forward_namespace(&mut self, msg: message::Namespace) {
+        self.outgoing.push(msg.into()).ok();
+    }
 }

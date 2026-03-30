@@ -48,6 +48,7 @@ macro_rules! publisher_msgs {
 publisher_msgs! {
     PublishNamespace,
     PublishNamespaceDone,
+    Namespace,
     Publish,
     PublishDone,
     SubscribeOk,

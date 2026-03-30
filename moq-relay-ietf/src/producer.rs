@@ -224,16 +224,17 @@ impl Producer {
         let namespace_prefix = subscribe_ns.namespace_prefix.clone();
         let track_filter = subscribe_ns.info.track_filter.clone();
 
-        // Register with subscriber registry to receive PUBLISH notifications
-        let (_subscription_guard, mut publish_rx) =
+        // Register with subscriber registry to receive PUBLISH and PUBLISH_NAMESPACE notifications
+        let (_subscription_guard, mut publish_rx, mut publish_ns_rx) =
             if let Some(ref registry) = self.subscriber_registry {
-                let (id, rx) = registry.register(namespace_prefix.clone(), track_filter);
+                let (id, rx, rx_ns) = registry.register(namespace_prefix.clone(), track_filter);
                 (
                     Some(crate::SubscriptionGuard::new(registry.clone(), id)),
                     Some(rx),
+                    Some(rx_ns),
                 )
             } else {
-                (None, None)
+                (None, None, None)
             };
 
         // Find existing namespaces that match the prefix
@@ -274,8 +275,8 @@ impl Producer {
             }
         }
 
-        // If we have a publish receiver, listen for new PUBLISH notifications
-        if let Some(ref mut rx) = publish_rx {
+        // If we have a publish receiver, listen for new PUBLISH and PUBLISH_NAMESPACE notifications
+        if publish_rx.is_some() || publish_ns_rx.is_some() {
             loop {
                 tokio::select! {
                     // Wait for the subscription to close
@@ -284,7 +285,13 @@ impl Producer {
                         break;
                     }
                     // Wait for PUBLISH notifications
-                    notification = rx.recv() => {
+                    notification = async {
+                        if let Some(ref mut rx) = publish_rx {
+                            rx.recv().await
+                        } else {
+                            std::future::pending().await
+                        }
+                    } => {
                         match notification {
                             Ok(publish_notif) => {
                                 log::info!(
@@ -293,31 +300,97 @@ impl Producer {
                                     publish_notif.track_name,
                                     namespace_prefix
                                 );
-                                // Forward PUBLISH to the subscriber
-                                // The subscriber can then respond with PUBLISH_OK if interested
-                                let request_id = self.publisher.next_track_alias(); // Use track alias counter for request IDs
-                                let publish_msg = message::Publish {
-                                    id: request_id,
-                                    track_namespace: publish_notif.namespace.clone(),
-                                    track_name: publish_notif.track_name.clone(),
-                                    track_alias: publish_notif.track_alias,
-                                    params: KeyValuePairs::new(),
-                                    track_extensions: Default::default(),
-                                };
-                                self.publisher.forward_publish(publish_msg);
-                                log::debug!(
-                                    "forwarded PUBLISH for {}/{} (request_id={}, track_alias={})",
-                                    publish_notif.namespace,
-                                    publish_notif.track_name,
-                                    request_id,
-                                    publish_notif.track_alias
-                                );
+
+                                // Get the TrackReader for this track so we can stream data
+                                if let Some(track_info) = self.locals.get_track_info(
+                                    &publish_notif.namespace,
+                                    &publish_notif.track_name,
+                                ) {
+                                    let track_reader = track_info.get_reader();
+
+                                    // Use publisher.publish() which properly tracks the PUBLISH
+                                    // and will stream data when PUBLISH_OK is received
+                                    let mut publisher = self.publisher.clone();
+                                    tokio::spawn(async move {
+                                        match publisher.publish(track_reader.clone()).await {
+                                            Ok(published) => {
+                                                log::info!(
+                                                    "forwarded PUBLISH for {}/{}, waiting for PUBLISH_OK",
+                                                    publish_notif.namespace,
+                                                    publish_notif.track_name
+                                                );
+                                                // serve() will wait for PUBLISH_OK then stream data
+                                                if let Err(e) = published.serve(track_reader).await {
+                                                    log::warn!(
+                                                        "failed to serve track {}/{}: {}",
+                                                        publish_notif.namespace,
+                                                        publish_notif.track_name,
+                                                        e
+                                                    );
+                                                }
+                                            }
+                                            Err(e) => {
+                                                log::warn!(
+                                                    "failed to publish track {}/{}: {}",
+                                                    publish_notif.namespace,
+                                                    publish_notif.track_name,
+                                                    e
+                                                );
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    log::warn!(
+                                        "no track info found for {}/{}, cannot forward PUBLISH",
+                                        publish_notif.namespace,
+                                        publish_notif.track_name
+                                    );
+                                }
                             }
                             Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
                                 log::warn!("subscription lagged by {} messages", n);
                             }
                             Err(tokio::sync::broadcast::error::RecvError::Closed) => {
                                 log::debug!("publish notification channel closed");
+                                break;
+                            }
+                        }
+                    }
+                    // Wait for PUBLISH_NAMESPACE notifications -> forward as NAMESPACE message
+                    notification = async {
+                        if let Some(ref mut rx) = publish_ns_rx {
+                            rx.recv().await
+                        } else {
+                            std::future::pending().await
+                        }
+                    } => {
+                        match notification {
+                            Ok(ns_notif) => {
+                                log::info!(
+                                    "received PUBLISH_NAMESPACE notification for {:?} on subscription prefix {:?}",
+                                    ns_notif.namespace,
+                                    namespace_prefix
+                                );
+                                // Forward NAMESPACE message to the subscriber (not PUBLISH_NAMESPACE)
+                                // NAMESPACE (0x08) is the draft-16 message for announcing namespaces
+                                // to SUBSCRIBE_NAMESPACE subscribers
+                                let namespace_msg = message::Namespace {
+                                    id: subscribe_ns.info.request_id,
+                                    track_namespace: ns_notif.namespace.clone(),
+                                    params: KeyValuePairs::new(),
+                                };
+                                self.publisher.forward_namespace(namespace_msg);
+                                log::debug!(
+                                    "forwarded NAMESPACE for {:?} (request_id={})",
+                                    ns_notif.namespace,
+                                    subscribe_ns.info.request_id
+                                );
+                            }
+                            Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
+                                log::warn!("namespace subscription lagged by {} messages", n);
+                            }
+                            Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                                log::debug!("publish_namespace notification channel closed");
                                 break;
                             }
                         }

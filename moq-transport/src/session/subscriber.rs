@@ -162,6 +162,7 @@ impl Subscriber {
         let res = match &msg {
             message::Publisher::PublishNamespace(msg) => self.recv_publish_namespace(msg),
             message::Publisher::PublishNamespaceDone(msg) => self.recv_publish_ns_done(msg),
+            message::Publisher::Namespace(msg) => self.recv_namespace(msg),
             message::Publisher::Publish(msg) => self.recv_publish(msg),
             message::Publisher::PublishDone(msg) => self.recv_publish_done(msg),
             message::Publisher::SubscribeOk(msg) => self.recv_subscribe_ok(msg),
@@ -217,6 +218,18 @@ impl Subscriber {
             entry.recv_done()?;
         }
 
+        Ok(())
+    }
+
+    /// Handle NAMESPACE message (draft-16) - relay forwards this in response to SUBSCRIBE_NAMESPACE
+    fn recv_namespace(&mut self, msg: &message::Namespace) -> Result<(), SessionError> {
+        log::info!(
+            "received NAMESPACE for {:?} (request_id={})",
+            msg.track_namespace,
+            msg.id
+        );
+        // TODO: Implement proper handling - notify the SUBSCRIBE_NAMESPACE handler
+        // For now, just log and accept
         Ok(())
     }
 

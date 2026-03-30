@@ -14,6 +14,7 @@ mod filter_type;
 mod go_away;
 mod group_order;
 mod max_request_id;
+mod namespace;
 mod parameters;
 mod publish;
 mod publish_done;
@@ -45,6 +46,7 @@ pub use filter_type::*;
 pub use go_away::*;
 pub use group_order::*;
 pub use max_request_id::*;
+pub use namespace::*;
 pub use parameters::*;
 pub use publish::*;
 pub use publish_done::*;
@@ -191,6 +193,9 @@ message_types! {
     // ANNOUNCE family, sent by subscriber
     RequestOk = 0x7,
     PublishNamespaceCancel = 0xc,
+
+    // NAMESPACE family, sent by relay to subscriber (draft-16)
+    Namespace = 0x8,
 
     // TRACK_STATUS family, sent by subscriber
     TrackStatus = 0xd,

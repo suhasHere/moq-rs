@@ -236,10 +236,13 @@ impl Locals {
 
         let entry = Self::find_best_match_entry(&lookup, namespace)?;
 
+        // Use full namespace + track_name as key to avoid collisions
+        let track_key = format!("{}:{}", namespace, track_name);
+
         let mut tracks = entry.tracks.lock().unwrap();
 
         let track_info = tracks
-            .entry(track_name.to_string())
+            .entry(track_key)
             .or_insert_with(|| Arc::new(TrackInfo::new(namespace.clone(), track_name.to_string())))
             .clone();
 
@@ -256,11 +259,15 @@ impl Locals {
     ) -> Arc<TrackInfo> {
         let mut lookup = self.lookup.lock().unwrap();
 
+        // Use full namespace + track_name as key to avoid collisions
+        // when different namespaces have the same track_name
+        let track_key = format!("{}:{}", namespace, track_name);
+
         // First try to find an existing matching namespace entry
         if let Some(entry) = Self::find_best_match_entry(&lookup, namespace) {
             let mut tracks = entry.tracks.lock().unwrap();
             return tracks
-                .entry(track_name.to_string())
+                .entry(track_key.clone())
                 .or_insert_with(|| {
                     Arc::new(TrackInfo::new(namespace.clone(), track_name.to_string()))
                 })
@@ -284,7 +291,7 @@ impl Locals {
 
         let mut tracks = entry.tracks.lock().unwrap();
         tracks
-            .entry(track_name.to_string())
+            .entry(track_key)
             .or_insert_with(|| Arc::new(TrackInfo::new(namespace.clone(), track_name.to_string())))
             .clone()
     }
@@ -298,8 +305,10 @@ impl Locals {
 
         let entry = Self::find_best_match_entry(&lookup, namespace)?;
 
+        // Use full namespace + track_name as key to match get_or_create_track_info
+        let track_key = format!("{}:{}", namespace, track_name);
         let tracks = entry.tracks.lock().unwrap();
-        tracks.get(track_name).cloned()
+        tracks.get(&track_key).cloned()
     }
 
     fn find_best_match_entry<'a>(

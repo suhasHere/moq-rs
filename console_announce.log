@@ -1,0 +1,2013 @@
+ (channel 4) Object
+ [Arbiter T+13134353ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13134385ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13134417ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13134449ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13134481ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame ( [transport-worker] Version check: Object
+ [transport-worker] WebTransport options: {"protocols":["moqt-16"]}
+ [transport-worker] Version check: Object
+ [transport-worker] WebTransport options: {"protocols":["moqt-16"]}
+ [transport-worker] Version check: Object
+ [transport-worker] WebTransport options: {"protocols":["moqt-16"]}
+ [transport-worker] Version check: Object
+ [transport-worker] WebTransport options: {"protocols":["moqt-16"]}
+ [transport-worker] Version check: Object
+ [transport-worker] WebTransport options: {"protocols":["moqt-16"]}
+ [Arbiter T+13134321ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13134321ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiterchannel 4) Object
+ [Arbiter T+13134512ms] NO FRAMES READY Object
+ [Arbiter T+13134532ms] DEADLINE EXPIRED Object
+ [Arbiter T+13134532ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13134545ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13134577ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13134688ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13134736ms] DEADLINE EXPIRED Object
+ [Arbiter T+13134736ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13134753ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13134785ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13134816ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13134848ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13134881ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13134912ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13134945ms] DEADLINE EXPIRED Object
+ [Arbiter T+13134945ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13134945ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13134976ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13135024ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13135058ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13135089ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13135121ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13135153ms] DEADLINE EXPIRED Object
+ [Arbiter T+13135153ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13135153ms] NO FRAMES READY Object
+ [Arbiter T+13135168ms] FRAMES OUTPUT Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Arbiter stats (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13135184ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13135217ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13135249ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13135281ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13135314ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13135345ms] NO FRAMES READY Object
+ [Arbiter T+13135362ms] DEADLINE EXPIRED Object
+ [Arbiter T+13135362ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13135408ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13135440ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13135472ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13135504ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13135537ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13135568ms] DEADLINE EXPIRED Object
+ [Arbiter T+13135568ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13135568ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13135617ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13135649ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13135681ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13135713ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13135776ms] DEADLINE EXPIRED Object
+ [Arbiter T+13135776ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13135776ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13135808ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13135840ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13135872ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13135923ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13135942ms] GROUP MARKED COMPLETE Object
+ [CodecDecodeWorker] Group 1861207729 marked complete (channel 4)
+ [Arbiter T+13135943ms] GROUP MARKED COMPLETE Object
+ [CodecDecodeWorker] Group 1861207729 marked complete (channel 4)
+ [Arbiter T+13135953ms] NO FRAMES READY Object
+ [Arbiter T+13135954ms] NEW GROUP Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13135985ms] DEADLINE EXPIRED Object
+ [Arbiter T+13135985ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13135985ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13136000ms] GROUP COMPLETED Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13136017ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] KEYFRAME received (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13136066ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13136097ms] NO FRAMES READY Object
+ [Arbiter T+13136112ms] DEADLINE EXPIRED Object
+ [Arbiter T+13136112ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13136145ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13136176ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13136208ms] FRAMES OUTPUT Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Arbiter stats (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13136226ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13136258ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13136290ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13136320ms] DEADLINE EXPIRED Object
+ [Arbiter T+13136320ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13136320ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13136353ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13136385ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13136417ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13136448ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13136481ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13136512ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13136529ms] DEADLINE EXPIRED Object
+ [Arbiter T+13136529ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13136545ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13136593ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13136624ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13136673ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13136704ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13136737ms] DEADLINE EXPIRED Object
+ [Arbiter T+13136737ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13136737ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13136784ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13136816ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13136849ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13136881ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13136913ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13136945ms] DEADLINE EXPIRED Object
+ [Arbiter T+13136945ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13136945ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13136977ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13137008ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13137041ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13137089ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13137122ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13137152ms] DEADLINE EXPIRED Object
+ [Arbiter T+13137152ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13137152ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13137185ms] NO FRAMES READY Object
+ [Arbiter T+13137201ms] FRAMES OUTPUT Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Arbiter stats (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13137217ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13137248ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13137281ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13137312ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13137345ms] NO FRAMES READY Object
+ [Arbiter T+13137361ms] DEADLINE EXPIRED Object
+ [Arbiter T+13137361ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13137377ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13137409ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13137440ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13137473ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13137505ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13137568ms] DEADLINE EXPIRED Object
+ [Arbiter T+13137568ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13137584ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13137616ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13137649ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13137680ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13137712ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13137744ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13137776ms] DEADLINE EXPIRED Object
+ [Arbiter T+13137776ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13137793ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13137825ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13137872ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13137921ms] NO FRAMES READY Object
+ [Arbiter T+13137933ms] GROUP MARKED COMPLETE Object
+ [CodecDecodeWorker] Group 1861207730 marked complete (channel 4)
+ [Arbiter T+13137933ms] GROUP MARKED COMPLETE Object
+ [CodecDecodeWorker] Group 1861207730 marked complete (channel 4)
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13137949ms] NEW GROUP Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13137953ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13137985ms] DEADLINE EXPIRED Object
+ [Arbiter T+13137985ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13137985ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13138000ms] GROUP COMPLETED Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13138020ms] NO FRAMES READY Object
+ [CodecDecodeWorker] KEYFRAME received (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13138048ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13138098ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13138113ms] DEADLINE EXPIRED Object
+ [Arbiter T+13138113ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13138145ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13138177ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13138208ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13138242ms] FRAMES OUTPUT Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Arbiter stats (channel 4) Object
+ [Arbiter T+13138257ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13138288ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13138320ms] DEADLINE EXPIRED Object
+ [Arbiter T+13138321ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13138336ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13138400ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13138466ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13138512ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13138529ms] DEADLINE EXPIRED Object
+ [Arbiter T+13138529ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13138545ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13138593ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13138625ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13138672ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13138704ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13138736ms] DEADLINE EXPIRED Object
+ [Arbiter T+13138736ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13138752ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13138785ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13138817ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13138849ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.007 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13138897ms] NO FRAMES READY Object
+ 21:11:54.036 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.036 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.043 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.044 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.045 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.045 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.045 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.069 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13138944ms] DEADLINE EXPIRED Object
+ [Arbiter T+13138944ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13138944ms] NO FRAMES READY Object
+ 21:11:54.073 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.073 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.076 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.076 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.076 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:54.097 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.099 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.101 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.102 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.104 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.104 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.104 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13138992ms] NO FRAMES READY Object
+ 21:11:54.127 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.132 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.135 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.135 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.135 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13139027ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13139058ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.200 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.201 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.201 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:54.202 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.202 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.202 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.225 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.228 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.229 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.230 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13139104ms] NO FRAMES READY Object
+ 21:11:54.234 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.234 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.234 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:54.260 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.264 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.267 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.267 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.271 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.273 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.273 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.273 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13139152ms] DEADLINE EXPIRED Object
+ [Arbiter T+13139153ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.295 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.296 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.296 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.301 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.304 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.304 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.304 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13139185ms] NO FRAMES READY Object
+ 21:11:54.327 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.329 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.331 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.337 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.339 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.339 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.340 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.340 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.340 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13139216ms] NO FRAMES READY Object
+ [Arbiter T+13139233ms] FRAMES OUTPUT Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Arbiter stats (channel 4) Object
+ 21:11:54.363 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.368 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.369 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.369 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13139248ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.400 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.405 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.406 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13139281ms] NO FRAMES READY Object
+ 21:11:54.407 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.407 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.408 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.426 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.432 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.438 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.438 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.438 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13139312ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.462 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.468 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.468 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.468 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13139345ms] NO FRAMES READY Object
+ 21:11:54.486 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13139360ms] DEADLINE EXPIRED Object
+ [Arbiter T+13139360ms] DEADLINE EXTENDED (partial output) Object
+ 21:11:54.486 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.499 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.502 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.502 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.502 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.521 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.521 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.524 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.527 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.528 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.533 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.533 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.533 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13139409ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.557 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.559 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.560 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.564 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13139440ms] NO FRAMES READY Object
+ 21:11:54.568 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.568 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.568 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.589 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.590 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.593 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.594 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13139473ms] NO FRAMES READY Object
+ 21:11:54.604 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.606 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.606 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.606 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.626 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.627 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13139504ms] NO FRAMES READY Object
+ 21:11:54.631 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.639 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.639 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.639 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:54.657 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.661 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.662 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.672 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.672 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.672 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13139552ms] NO FRAMES READY Object
+ 21:11:54.694 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13139569ms] DEADLINE EXPIRED Object
+ [Arbiter T+13139569ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.701 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.705 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.705 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.705 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13139585ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.728 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.730 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.731 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.734 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.735 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.735 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.735 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13139616ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.760 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.762 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.767 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.769 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.769 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.769 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13139649ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.790 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.795 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.797 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.798 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.803 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.803 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.803 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13139681ms] NO FRAMES READY Object
+ [VideoRenderer] Rendering stats Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.825 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.832 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.833 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.833 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.833 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13139714ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.857 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.864 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.864 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.865 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.865 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.865 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13139745ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.892 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.895 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.896 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.898 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.901 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.902 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.902 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.902 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13139776ms] DEADLINE EXPIRED Object
+ [Arbiter T+13139776ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13139776ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.930 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13139808ms] NO FRAMES READY Object
+ 21:11:54.934 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.936 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.936 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.936 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.961 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.965 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13139840ms] NO FRAMES READY Object
+ 21:11:54.966 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.971 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.971 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.971 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:54.991 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.993 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13139873ms] NO FRAMES READY Object
+ 21:11:54.999 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:54.999 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:54.999 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:55.027 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13139904ms] NO FRAMES READY Object
+ 21:11:55.031 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.034 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.034 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.034 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:55.056 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.056 [INFO] [moqt:session:object-router] Received END_OF_GROUP Object
+ 21:11:55.056 [INFO] [moqt:media:subscribe-pipeline] Group marked complete (END_OF_GROUP received) Object
+ 21:11:55.056 [INFO] [moqt:session:object-router] Received END_OF_GROUP Object
+ 21:11:55.056 [INFO] [moqt:media:subscribe-pipeline] Group marked complete (END_OF_GROUP received) Object
+ [Arbiter T+13139930ms] GROUP MARKED COMPLETE Object
+ [CodecDecodeWorker] Group 1861207731 marked complete (channel 4)
+ [Arbiter T+13139930ms] GROUP MARKED COMPLETE Object
+ [CodecDecodeWorker] Group 1861207731 marked complete (channel 4)
+ 21:11:55.057 [INFO] [moqt:session] Received incoming-stream event from worker Object
+ 21:11:55.057 [INFO] [moqt:session:object-router] Received incoming stream
+ 21:11:55.057 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.057 [INFO] [moqt:session:object-router] Incoming stream first bytes (draft-16) Object
+ 21:11:55.057 [INFO] [moqt:session:object-router] Decoded subgroup header (draft-16) Object
+ 21:11:55.061 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:55.066 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.069 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.070 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.072 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.072 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.072 [INFO] [moqt:session:object-router] New group started Object
+ 21:11:55.072 [INFO] [moqt:session:object-router] Delivering object Object
+ [Arbiter T+13139946ms] NEW GROUP Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13139953ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13139985ms] DEADLINE EXPIRED Object
+ [Arbiter T+13139985ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13139985ms] NO FRAMES READY Object
+ 21:11:55.123 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.123 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.123 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13140000ms] GROUP COMPLETED Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13140016ms] NO FRAMES READY Object
+ 21:11:55.158 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.158 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.158 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] KEYFRAME received (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13140049ms] NO FRAMES READY Object
+ 21:11:55.194 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.196 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.196 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.196 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13140097ms] DEADLINE EXPIRED Object
+ [Arbiter T+13140097ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13140097ms] NO FRAMES READY Object
+ 21:11:55.229 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.232 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.232 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.233 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.233 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.233 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13140131ms] NO FRAMES READY Object
+ 21:11:55.259 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.263 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.263 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.263 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:55.293 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.296 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.296 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.296 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13140178ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:55.331 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.332 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.332 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.333 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.333 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.333 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13140208ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:55.358 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.358 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.358 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13140242ms] NO FRAMES READY Object
+ [Arbiter T+13140259ms] FRAMES OUTPUT Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Arbiter stats (channel 4) Object
+ 21:11:55.387 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.388 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.392 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.392 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.393 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.393 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13140273ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:55.419 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.419 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.424 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.424 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.424 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13140306ms] DEADLINE EXPIRED Object
+ [Arbiter T+13140306ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13140306ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:55.454 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.455 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.458 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.462 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13140336ms] NO FRAMES READY Object
+ 21:11:55.464 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.466 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.472 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.474 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:55.479 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.479 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.479 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:55.490 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.491 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.491 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13140369ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:55.525 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.525 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13140401ms] NO FRAMES READY Object
+ 21:11:55.529 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.530 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.531 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.531 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.531 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:55.558 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.561 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.568 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.568 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.568 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13140464ms] NO FRAMES READY Object
+ 21:11:55.594 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.594 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.597 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.603 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.603 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.603 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.603 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:55.617 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.623 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:55.625 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.625 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.626 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.626 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.626 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13140514ms] DEADLINE EXPIRED Object
+ [Arbiter T+13140514ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13140514ms] NO FRAMES READY Object
+ 21:11:55.650 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.654 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:55.657 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.657 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.659 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.659 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.659 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13140545ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:55.696 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.698 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.700 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13140576ms] NO FRAMES READY Object
+ 21:11:55.702 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.703 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.707 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.710 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.711 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.712 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.716 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.716 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.717 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:55.726 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.727 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.732 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.734 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.734 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.734 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13140609ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:55.755 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.756 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.759 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.762 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.762 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.762 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.762 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13140642ms] NO FRAMES READY Object
+ 21:11:55.794 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.794 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.797 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.797 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.797 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.797 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13140704ms] NO FRAMES READY Object
+ 21:11:55.830 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.833 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.835 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.840 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.840 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.843 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.843 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.843 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13140721ms] DEADLINE EXPIRED Object
+ [Arbiter T+13140721ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [VideoRenderer] Rendering stats Object
+ 21:11:55.861 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.862 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13140736ms] NO FRAMES READY Object
+ 21:11:55.864 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.867 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.868 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.868 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.868 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13140769ms] NO FRAMES READY Object
+ 21:11:55.895 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.896 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.901 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.901 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.901 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:55.931 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.932 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.933 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.940 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13140816ms] NO FRAMES READY Object
+ 21:11:55.943 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.945 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.945 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.945 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:55.956 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.957 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:55.962 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.963 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.964 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.964 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:55.964 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13140849ms] NO FRAMES READY Object
+ 21:11:55.990 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:55.995 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:55.997 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.001 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.001 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.001 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13140881ms] NO FRAMES READY Object
+ 21:11:56.024 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.028 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.028 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.032 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.032 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.032 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13140932ms] DEADLINE EXPIRED Object
+ [Arbiter T+13140932ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.060 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.062 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.064 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.064 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.069 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13140944ms] NO FRAMES READY Object
+ 21:11:56.070 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.072 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.072 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.072 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.093 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.093 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.099 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.099 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13140976ms] NO FRAMES READY Object
+ 21:11:56.107 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.107 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.107 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13141010ms] NO FRAMES READY Object
+ 21:11:56.139 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.141 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.141 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.141 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.162 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.165 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.165 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.165 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13141040ms] NO FRAMES READY Object
+ 21:11:56.193 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.193 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.196 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.198 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.207 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.207 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.207 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13141090ms] NO FRAMES READY Object
+ 21:11:56.218 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.220 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.225 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.228 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.229 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.229 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.229 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13141136ms] DEADLINE EXPIRED Object
+ [Arbiter T+13141136ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13141136ms] NO FRAMES READY Object
+ 21:11:56.267 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.270 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.270 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.270 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:56.290 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.290 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.292 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.292 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.295 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.296 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.299 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.299 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.299 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.324 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13141201ms] NO FRAMES READY Object
+ 21:11:56.328 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.328 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.333 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.333 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.333 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:56.358 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.361 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.362 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.367 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.370 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.371 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.371 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13141249ms] NO FRAMES READY Object
+ [Arbiter T+13141266ms] FRAMES OUTPUT Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Arbiter stats (channel 4) Object
+ 21:11:56.394 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.396 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.399 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.400 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.402 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.402 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.402 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13141281ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.430 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.432 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.434 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.434 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.435 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13141312ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.460 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.461 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.464 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.465 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.467 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.468 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.469 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13141344ms] DEADLINE EXPIRED Object
+ [Arbiter T+13141344ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13141344ms] NO FRAMES READY Object
+ 21:11:56.471 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.471 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.471 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:56.486 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.491 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.492 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.493 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.496 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.499 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.499 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.499 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13141376ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.530 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.531 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.533 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.533 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.533 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13141409ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.563 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.564 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.566 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13141440ms] NO FRAMES READY Object
+ 21:11:56.569 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.572 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.572 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.574 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.578 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.578 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.578 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.598 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13141472ms] NO FRAMES READY Object
+ 21:11:56.599 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.603 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.604 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.605 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.605 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.605 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.626 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.630 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13141505ms] NO FRAMES READY Object
+ 21:11:56.633 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.637 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.639 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.639 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.639 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.665 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.669 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.679 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13141554ms] DEADLINE EXPIRED Object
+ [Arbiter T+13141554ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13141554ms] NO FRAMES READY Object
+ 21:11:56.681 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.681 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.681 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:56.691 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.691 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.694 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.697 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.701 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.705 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.706 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.706 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13141584ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.727 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.731 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.734 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.734 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.734 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13141617ms] NO FRAMES READY Object
+ 21:11:56.766 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.768 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.769 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.769 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.799 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.802 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13141682ms] NO FRAMES READY Object
+ 21:11:56.808 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.808 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.808 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.831 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.831 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.837 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.837 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.837 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13141712ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.868 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.869 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13141745ms] NO FRAMES READY Object
+ 21:11:56.871 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.875 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.875 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.881 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.885 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.885 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.885 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13141760ms] DEADLINE EXPIRED Object
+ [Arbiter T+13141760ms] DEADLINE EXTENDED (partial output) Object
+ 21:11:56.891 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.893 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.893 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.895 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.902 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.902 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.902 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [VideoRenderer] Rendering stats Object
+ 21:11:56.925 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.928 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.933 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.933 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.933 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.933 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13141808ms] NO FRAMES READY Object
+ 21:11:56.957 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.957 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.959 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.962 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.964 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.965 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.966 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.970 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:56.970 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:56.970 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:56.998 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13141872ms] NO FRAMES READY Object
+ 21:11:56.999 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.003 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.003 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.003 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:57.026 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.029 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13141905ms] NO FRAMES READY Object
+ 21:11:57.034 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.037 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.040 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.041 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.041 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:57.062 [INFO] [moqt:session] Received incoming-stream event from worker Object
+ 21:11:57.062 [INFO] [moqt:session:object-router] Received incoming stream
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:57.062 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.062 [INFO] [moqt:session:object-router] Incoming stream first bytes (draft-16) Object
+ 21:11:57.062 [INFO] [moqt:session:object-router] Decoded subgroup header (draft-16) Object
+ 21:11:57.062 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.062 [INFO] [moqt:session:object-router] Received END_OF_GROUP Object
+ 21:11:57.062 [INFO] [moqt:media:subscribe-pipeline] Group marked complete (END_OF_GROUP received) Object
+ 21:11:57.062 [INFO] [moqt:session:object-router] Received END_OF_GROUP Object
+ [Arbiter T+13141936ms] GROUP MARKED COMPLETE Object
+ 21:11:57.062 [INFO] [moqt:media:subscribe-pipeline] Group marked complete (END_OF_GROUP received) Object
+ [CodecDecodeWorker] Group 1861207732 marked complete (channel 4)
+ [Arbiter T+13141936ms] GROUP MARKED COMPLETE Object
+ [CodecDecodeWorker] Group 1861207732 marked complete (channel 4)
+ 21:11:57.063 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.065 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.067 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.069 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.071 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.073 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.074 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13141952ms] NO FRAMES READY Object
+ 21:11:57.079 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.079 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.079 [INFO] [moqt:session:object-router] New group started Object
+ 21:11:57.079 [INFO] [moqt:session:object-router] Delivering object Object
+ [Arbiter T+13141953ms] NEW GROUP Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13141969ms] DEADLINE EXPIRED Object
+ [Arbiter T+13141969ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13141985ms] NO FRAMES READY Object
+ 21:11:57.125 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.125 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.125 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13142000ms] GROUP COMPLETED Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13142016ms] NO FRAMES READY Object
+ 21:11:57.161 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.161 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.161 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] KEYFRAME received (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13142067ms] NO FRAMES READY Object
+ 21:11:57.193 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.193 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.194 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.194 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.194 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13142097ms] NO FRAMES READY Object
+ 21:11:57.232 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.232 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.232 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13142112ms] DEADLINE EXPIRED Object
+ [Arbiter T+13142112ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13142146ms] NO FRAMES READY Object
+ 21:11:57.272 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.272 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.272 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:57.291 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.295 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.295 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.296 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.296 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.296 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13142178ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:57.322 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.324 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.330 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.330 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.331 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13142209ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:57.364 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.366 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.366 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.366 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13142240ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:57.394 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.397 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.398 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.398 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.398 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13142272ms] NO FRAMES READY Object
+ [Arbiter T+13142290ms] FRAMES OUTPUT Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Arbiter stats (channel 4) Object
+ 21:11:57.425 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.428 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13142305ms] NO FRAMES READY Object
+ 21:11:57.433 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.433 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.433 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13142324ms] DEADLINE EXPIRED Object
+ [Arbiter T+13142324ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:57.458 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.458 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.461 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13142337ms] NO FRAMES READY Object
+ 21:11:57.466 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.469 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.470 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.475 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.476 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.476 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.476 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:57.493 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13142369ms] NO FRAMES READY Object
+ 21:11:57.495 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.498 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.498 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.498 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:57.526 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13142400ms] NO FRAMES READY Object
+ 21:11:57.527 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.529 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.533 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.533 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.533 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:57.559 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.560 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.563 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.564 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.564 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.565 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13142448ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:57.591 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.592 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.596 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.601 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.601 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.602 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13142481ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:57.625 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.630 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.634 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.634 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.634 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13142513ms] NO FRAMES READY Object
+ [Arbiter T+13142531ms] DEADLINE EXPIRED Object
+ [Arbiter T+13142531ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:57.660 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.667 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.667 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.667 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13142545ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:57.695 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.697 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.702 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.702 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.702 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13142576ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:57.734 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13142608ms] NO FRAMES READY Object
+ 21:11:57.742 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.745 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.745 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.745 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:57.762 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.765 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.765 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.765 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13142640ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13142673ms] NO FRAMES READY Object
+ 21:11:57.800 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.813 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.815 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.816 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.816 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:57.826 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.831 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:57.836 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.845 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:57.847 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.847 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.847 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13142736ms] DEADLINE EXPIRED Object
+ [Arbiter T+13142736ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13142736ms] NO FRAMES READY Object
+ 21:11:57.867 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.874 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.875 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.875 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.875 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.875 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:57.896 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.901 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.903 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.907 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.908 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.909 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.909 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.909 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13142800ms] NO FRAMES READY Object
+ 21:11:57.934 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.938 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.941 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:57.946 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.946 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.946 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:57.965 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.966 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.972 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:57.972 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:57.972 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13142848ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [VideoRenderer] Rendering stats Object
+ 21:11:57.999 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.006 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.006 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13142880ms] NO FRAMES READY Object
+ 21:11:58.008 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.008 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.008 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:58.027 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.030 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.033 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.033 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.033 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.059 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.061 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.068 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.070 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13142944ms] DEADLINE EXPIRED Object
+ [Arbiter T+13142944ms] DEADLINE EXTENDED (partial output) Object
+ [Arbiter T+13142944ms] NO FRAMES READY Object
+ 21:11:58.070 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.070 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.070 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.090 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.093 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.099 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.099 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.100 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.100 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.103 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.103 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.103 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13142977ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.124 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.124 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.127 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.129 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.129 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.129 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13143009ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.160 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.163 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.166 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.166 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.166 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13143040ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.195 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.196 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.197 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13143072ms] NO FRAMES READY Object
+ 21:11:58.202 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.205 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.205 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.205 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.230 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.230 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.230 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13143104ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13143136ms] NO FRAMES READY Object
+ 21:11:58.263 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.263 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.266 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.270 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.271 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.277 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.277 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.277 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13143153ms] DEADLINE EXPIRED Object
+ [Arbiter T+13143153ms] DEADLINE EXTENDED (partial output) Object
+ 21:11:58.291 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.291 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.295 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.300 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.300 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.300 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.322 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.324 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13143201ms] NO FRAMES READY Object
+ 21:11:58.327 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.328 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.333 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.333 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.335 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.335 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.335 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:58.358 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.360 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.362 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.367 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.368 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.373 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.373 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.373 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13143248ms] NO FRAMES READY Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.400 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.400 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.401 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.401 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.402 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.402 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13143280ms] NO FRAMES READY Object
+ [Arbiter T+13143297ms] FRAMES OUTPUT Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Arbiter stats (channel 4) Object
+ 21:11:58.426 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.429 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.433 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.434 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.438 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13143312ms] NO FRAMES READY Object
+ 21:11:58.438 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.439 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.439 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.439 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.461 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.464 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13143345ms] NO FRAMES READY Object
+ 21:11:58.475 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.475 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.475 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13143362ms] DEADLINE EXPIRED Object
+ [Arbiter T+13143362ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.501 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13143376ms] NO FRAMES READY Object
+ 21:11:58.502 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.510 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.512 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.512 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.512 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.530 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.532 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.534 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13143408ms] NO FRAMES READY Object
+ 21:11:58.535 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.535 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.535 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:58.556 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.559 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.559 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.565 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.571 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.571 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.571 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13143459ms] NO FRAMES READY Object
+ 21:11:58.592 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.597 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.598 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.598 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.602 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.602 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.602 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.620 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.624 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.628 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13143505ms] NO FRAMES READY Object
+ 21:11:58.631 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.631 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.631 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:58.651 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.652 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.654 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.655 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.658 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.659 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.662 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.662 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.662 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13143552ms] NO FRAMES READY Object
+ 21:11:58.683 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.686 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.687 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.688 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.690 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.693 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.694 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.694 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13143568ms] DEADLINE EXPIRED Object
+ [Arbiter T+13143568ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13143585ms] NO FRAMES READY Object
+ 21:11:58.718 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.730 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.730 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.730 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13143616ms] NO FRAMES READY Object
+ 21:11:58.757 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.758 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.758 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.760 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.760 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.760 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.785 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.789 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13143664ms] NO FRAMES READY Object
+ 21:11:58.792 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.792 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.792 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ 21:11:58.813 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.818 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.818 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.820 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.821 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.823 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.827 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.831 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.831 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.831 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13143713ms] NO FRAMES READY Object
+ 21:11:58.846 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.847 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.849 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.851 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.851 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.851 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.882 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.884 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.885 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13143761ms] NO FRAMES READY Object
+ 21:11:58.889 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.889 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.889 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [Arbiter T+13143777ms] DEADLINE EXPIRED Object
+ [Arbiter T+13143777ms] DEADLINE EXTENDED (partial output) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.926 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.926 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.926 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13143825ms] NO FRAMES READY Object
+ 21:11:58.959 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.960 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+ 21:11:58.960 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ 21:11:58.992 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.993 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.993 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:58.997 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13143872ms] NO FRAMES READY Object
+ 21:11:59.004 [INFO] [moqt:session:object-router] Stream read chunk Object
+ 21:11:59.006 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.006 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+logger.js:357 21:11:59.006 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+VideoRenderer.tsx:84 [VideoRenderer] Rendering stats Object
+logger.js:357 21:11:59.029 [INFO] [moqt:session:object-router] Stream read chunk Object
+ [Arbiter T+13143904ms] NO FRAMES READY Object
+logger.js:357 21:11:59.031 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.031 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+logger.js:357 21:11:59.031 [INFO] [moqt:session:object-router] Delivering object Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+logger.js:357 21:11:59.063 [INFO] [moqt:session] Received incoming-stream event from worker Object
+ [Arbiter T+13143937ms] NO FRAMES READY Object
+logger.js:360 21:11:59.063 [INFO] [moqt:session:object-router] Received incoming stream
+logger.js:357 21:11:59.063 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.063 [INFO] [moqt:session:object-router] Incoming stream first bytes (draft-16) Object
+logger.js:357 21:11:59.063 [INFO] [moqt:session:object-router] Decoded subgroup header (draft-16) Object
+logger.js:357 21:11:59.063 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.063 [INFO] [moqt:session:object-router] Received END_OF_GROUP Object
+logger.js:357 21:11:59.063 [INFO] [moqt:media:subscribe-pipeline] Group marked complete (END_OF_GROUP received) Object
+logger.js:357 21:11:59.063 [INFO] [moqt:session:object-router] Received END_OF_GROUP Object
+ [Arbiter T+13143937ms] GROUP MARKED COMPLETE Object
+ [CodecDecodeWorker] Group 1861207733 marked complete (channel 4)
+logger.js:357 21:11:59.063 [INFO] [moqt:media:subscribe-pipeline] Group marked complete (END_OF_GROUP received) Object
+ [Arbiter T+13143937ms] GROUP MARKED COMPLETE Object
+ [CodecDecodeWorker] Group 1861207733 marked complete (channel 4)
+logger.js:357 21:11:59.067 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.068 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.069 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.071 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.071 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.076 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.077 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.077 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+logger.js:357 21:11:59.078 [INFO] [moqt:session:object-router] New group started Object
+logger.js:357 21:11:59.078 [INFO] [moqt:session:object-router] Delivering object Object
+ [Arbiter T+13143952ms] NEW GROUP Object
+ [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+ [CodecDecodeWorker] Decoding frame (channel 4) Object
+ [Arbiter T+13143985ms] DEADLINE EXPIRED Object
+ [Arbiter T+13143985ms] DEADLINE EXTENDED (partial output) Object
+group-arbiter.js:69 [Arbiter T+13143985ms] GROUP COMPLETED Object
+codec-decode-worker.js:26 [CodecDecodeWorker] Decoding frame (channel 4) Object
+logger.js:357 21:11:59.125 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.126 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+logger.js:357 21:11:59.126 [INFO] [moqt:session:object-router] Delivering object Object
+codec-decode-worker.js:26 [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+group-arbiter.js:69 [Arbiter T+13144000ms] NO FRAMES READY Object
+logger.js:357 21:11:59.163 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.163 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+logger.js:357 21:11:59.163 [INFO] [moqt:session:object-router] Delivering object Object
+codec-decode-worker.js:26 [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+codec-decode-worker.js:26 [CodecDecodeWorker] KEYFRAME received (channel 4) Object
+codec-decode-worker.js:26 [CodecDecodeWorker] Decoding frame (channel 4) Object
+group-arbiter.js:69 [Arbiter T+13144065ms] NO FRAMES READY Object
+logger.js:357 21:11:59.195 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.195 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.201 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.201 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+logger.js:357 21:11:59.201 [INFO] [moqt:session:object-router] Delivering object Object
+codec-decode-worker.js:26 [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+codec-decode-worker.js:26 [CodecDecodeWorker] Decoding frame (channel 4) Object
+group-arbiter.js:69 [Arbiter T+13144097ms] NO FRAMES READY Object
+logger.js:357 21:11:59.227 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.229 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.230 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.230 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.236 [INFO] [moqt:session:object-router] Stream read chunk Object
+group-arbiter.js:69 [Arbiter T+13144113ms] DEADLINE EXPIRED Object
+group-arbiter.js:69 [Arbiter T+13144113ms] DEADLINE EXTENDED (partial output) Object
+logger.js:357 21:11:59.245 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.246 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.246 [DEBUG] [moqt:session:object-router] Looking up subscription by trackAlias Object
+logger.js:357 21:11:59.246 [INFO] [moqt:session:object-router] Delivering object Object
+codec-decode-worker.js:26 [CodecDecodeWorker] Pushed video to arbiter (channel 4) Object
+logger.js:357 21:11:59.251 [INFO] [moqt:session:object-router] Stream read chunk Object
+logger.js:357 21:11:59.251 [INFO] [moqt:session:object-router] Received END_OF_GROUP Object
+logger.js:357 21:11:59.252 [INFO] [moqt:media:subscribe-pipeline] Group marked complete (END_OF_GROUP received) Object
+group-arbiter.js:69 [Arbiter T+13144126ms] GROUP MARKED COMPLETE Object
+codec-decode-worker.js:26 [CodecDecodeWorker] Group 1861207734 marked complete (channel 4)
+logger.js:357 21:11:59.255 [DEBUG] [moqt:session] Control message received Object
+codec-decode-worker.js:26 [CodecDecodeWorker] Decoding frame (channel 4) Object
+logger.js:357 21:11:59.255 [INFO] [moqt:core:codec] Decoded PUBLISH_DONE Object
+logger.js:357 21:11:59.255 [INFO] [moqt:session] Received control message Object
+group-arbiter.js:69 [Arbiter T+13144144ms] NO FRAMES READY Object
+codec-decode-worker.js:26 [CodecDecodeWorker] Decoding frame (channel 4) Object
+group-arbiter.js:69 [Arbiter T+13144178ms] NO FRAMES READY Object
+group-arbiter.js:69 [Arbiter T+13144209ms] GROUP COMPLETED Object
+codec-decode-worker.js:26 [CodecDecodeWorker] Decoding frame (channel 4) Object
+group-arbiter.js:69 [Arbiter T+13144226ms] NO ACTIVE GROUP Object
+group-arbiter.js:69 [Arbiter T+13145184ms] NO ACTIVE GROUP Object
+group-arbiter.js:69 [Arbiter T+13146148ms] NO ACTIVE GROUP Object
+logger.js:360 21:12:01.866 [INFO] [moqt:media:session] Closing media session
+logger.js:357 21:12:01.866 [INFO] [moqt:media:session] Unsubscribing Object
+logger.js:360 21:12:01.866 [INFO] [moqt:media:subscribe-pipeline] Stopping subscribe pipeline
+logger.js:360 21:12:01.866 [INFO] [moqt:media:subscribe-pipeline] Subscribe pipeline stopped
+logger.js:357 21:12:01.866 [INFO] [moqt:session] Unsubscribing Object
+logger.js:357 21:12:01.866 [DEBUG] [moqt:core:codec] Encoding message Object
+codec-decode-worker.js:26 [CodecDecodeWorker] Channel 4 reset
+codec-decode-worker.js:26 [CodecDecodeWorker] Channel 4 destroyed
+logger.js:357 21:12:01.866 [INFO] [moqt:session] Sent UNSUBSCRIBE message Object
+logger.js:357 21:12:01.866 [DEBUG] [moqt:session:subscription-manager] Removed subscription Object
+logger.js:357 21:12:01.866 [INFO] [moqt:session] Unsubscribed Object
+logger.js:357 21:12:01.866 [INFO] [moqt:media:session] Unsubscribed Object
+logger.js:360 21:12:01.867 [INFO] [moqt:session] Closing session
+logger.js:360 21:12:01.867 [INFO] [moqt:session] Session closed
+logger.js:360 21:12:01.867 [INFO] [moqt:media:session] Media session closed
+logger.js:357 21:12:01.905 [WARN] [moqt:session] Worker transport disconnected Object
+consoleOutput @ logger.js:357
+logger.js:357 21:12:01.905 [INFO] [moqt:session] Session state changed Object
+6059 log entries are not shown.
+

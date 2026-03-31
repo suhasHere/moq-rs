@@ -1,6 +1,9 @@
 //! Filter pipeline configuration and CLI arguments.
 
 use clap::Parser;
+use std::time::Duration;
+
+use super::TopNConfig;
 
 /// Command-line arguments for filter configuration.
 #[derive(Parser, Debug, Clone)]
@@ -26,6 +29,27 @@ pub struct FilterArgs {
     /// Only used when --filter-stats is enabled.
     #[arg(long, default_value = "60")]
     pub filter_stats_interval: u64,
+
+    /// Enable Top-N filtering based on object extension metrics.
+    /// When enabled, only the top N tracks (by metric value) are forwarded.
+    #[arg(long, default_value = "false")]
+    pub topn_enabled: bool,
+
+    /// Number of top tracks to forward (requires --topn-enabled).
+    #[arg(long, default_value = "3")]
+    pub topn_count: usize,
+
+    /// Extension header type that carries the metric value (hex, e.g., 0x100).
+    #[arg(long, default_value = "256")]
+    pub topn_metric_type: u64,
+
+    /// Decay timeout in milliseconds - how long before inactive track metrics decay.
+    #[arg(long, default_value = "2000")]
+    pub topn_decay_ms: u64,
+
+    /// Recompute interval in milliseconds - how often to recalculate top-n.
+    #[arg(long, default_value = "500")]
+    pub topn_recompute_ms: u64,
 }
 
 impl Default for FilterArgs {
@@ -36,6 +60,11 @@ impl Default for FilterArgs {
             object_filt: true,
             filter_stats: false,
             filter_stats_interval: 60,
+            topn_enabled: false,
+            topn_count: 3,
+            topn_metric_type: 0x100,
+            topn_decay_ms: 2000,
+            topn_recompute_ms: 500,
         }
     }
 }
@@ -49,6 +78,19 @@ impl FilterArgs {
             object_enabled: self.object_filt,
             stats_enabled: self.filter_stats,
             stats_interval_secs: self.filter_stats_interval,
+            topn_enabled: self.topn_enabled,
+            topn_config: self.to_topn_config(),
+        }
+    }
+
+    /// Converts CLI arguments to TopN configuration.
+    pub fn to_topn_config(&self) -> TopNConfig {
+        TopNConfig {
+            n: self.topn_count,
+            metric_extension_type: self.topn_metric_type,
+            decay_after: Duration::from_millis(self.topn_decay_ms),
+            recompute_interval: Duration::from_millis(self.topn_recompute_ms),
+            higher_is_better: true,
         }
     }
 }
@@ -70,6 +112,12 @@ pub struct FilterConfig {
 
     /// Statistics reporting interval in seconds.
     pub stats_interval_secs: u64,
+
+    /// Whether Top-N filtering is enabled.
+    pub topn_enabled: bool,
+
+    /// Top-N filter configuration.
+    pub topn_config: TopNConfig,
 }
 
 impl Default for FilterConfig {
@@ -80,6 +128,8 @@ impl Default for FilterConfig {
             object_enabled: true,
             stats_enabled: false,
             stats_interval_secs: 60,
+            topn_enabled: false,
+            topn_config: TopNConfig::default(),
         }
     }
 }
@@ -98,6 +148,8 @@ impl FilterConfig {
             object_enabled: false,
             stats_enabled: false,
             stats_interval_secs: 60,
+            topn_enabled: false,
+            topn_config: TopNConfig::default(),
         }
     }
 
@@ -109,12 +161,14 @@ impl FilterConfig {
             object_enabled: true,
             stats_enabled: false,
             stats_interval_secs: 60,
+            topn_enabled: false,
+            topn_config: TopNConfig::default(),
         }
     }
 
     /// Returns true if any filter stage is enabled.
     pub fn any_enabled(&self) -> bool {
-        self.track_ext_enabled || self.track_enabled || self.object_enabled
+        self.track_ext_enabled || self.track_enabled || self.object_enabled || self.topn_enabled
     }
 
     /// Enables statistics collection.
@@ -126,6 +180,20 @@ impl FilterConfig {
     /// Sets the statistics reporting interval.
     pub fn with_stats_interval(mut self, secs: u64) -> Self {
         self.stats_interval_secs = secs;
+        self
+    }
+
+    /// Enables Top-N filtering with the given count.
+    pub fn with_topn(mut self, n: usize) -> Self {
+        self.topn_enabled = true;
+        self.topn_config.n = n;
+        self
+    }
+
+    /// Sets the Top-N configuration.
+    pub fn with_topn_config(mut self, config: TopNConfig) -> Self {
+        self.topn_enabled = true;
+        self.topn_config = config;
         self
     }
 }

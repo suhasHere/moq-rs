@@ -17,7 +17,7 @@ use slab::Slab;
 
 use super::{
     FilterConfig, FilterStats, FilterStatsSnapshot, ObjectFilter, ObjectFilterParams, ObjectInfo,
-    TrackExtensionFilter, TrackFilter, TrackFilterMode,
+    TopNFilter, TopNStats, TrackExtensionFilter, TrackFilter, TrackFilterMode,
 };
 
 /// Subscription ID type.
@@ -31,10 +31,10 @@ type FilterGroupId = u64;
 /// # Architecture
 ///
 /// ```text
-/// Incoming      ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   Forwarded
-/// Object   ───► │ Track Ext    │──►│    Track     │──►│   Object     │──► Object
-///               │   Filter     │   │    Filter    │   │   Filter     │
-///               └──────────────┘   └──────────────┘   └──────────────┘
+/// Incoming      ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   Forwarded
+/// Object   ───► │ Track Ext    │──►│    Track     │──►│   Object     │──►│    Top-N     │──► Object
+///               │   Filter     │   │    Filter    │   │   Filter     │   │   Filter     │
+///               └──────────────┘   └──────────────┘   └──────────────┘   └──────────────┘
 /// ```
 ///
 /// # Performance Features
@@ -44,6 +44,7 @@ type FilterGroupId = u64;
 /// - **Lock-free Hot Path**: Read operations use RwLock with read-heavy bias.
 /// - **Slab Allocation**: O(1) subscription filter lookup by ID.
 /// - **Statistics Collection**: Optional, can be toggled at runtime.
+/// - **Top-N Filtering**: Select top N tracks based on metrics in extension headers.
 pub struct FilterPipeline {
     /// Configuration.
     config: FilterConfig,
@@ -57,6 +58,10 @@ pub struct FilterPipeline {
     /// Stage 3: Object Filters (per-subscription).
     /// Managed via slab for O(1) lookup by subscription ID.
     object_filters: RwLock<Slab<Arc<ObjectFilter>>>,
+
+    /// Stage 4: Top-N Filter (global).
+    /// Selects top N tracks based on metrics in extension headers.
+    topn_filter: Option<TopNFilter>,
 
     /// Filter group deduplication.
     /// Maps filter hash to (filter, subscription_ids).
@@ -94,11 +99,19 @@ impl FilterPipeline {
             track_filter.disable();
         }
 
+        // Initialize Top-N filter if enabled
+        let topn_filter = if config.topn_enabled {
+            Some(TopNFilter::new(config.topn_config.clone()))
+        } else {
+            None
+        };
+
         Self {
             config,
             track_ext_filter: RwLock::new(track_ext_filter),
             track_filter: RwLock::new(track_filter),
             object_filters: RwLock::new(Slab::new()),
+            topn_filter,
             filter_groups: RwLock::new(FxHashMap::default()),
             sub_to_group: RwLock::new(FxHashMap::default()),
             enabled: AtomicBool::new(true),
@@ -315,13 +328,56 @@ impl FilterPipeline {
         }
     }
 
+    // ==================== Stage 4: Top-N Filter ====================
+
+    /// Returns a reference to the Top-N filter, if enabled.
+    pub fn topn_filter(&self) -> Option<&TopNFilter> {
+        self.topn_filter.as_ref()
+    }
+
+    /// Returns true if Top-N filtering is enabled.
+    pub fn is_topn_enabled(&self) -> bool {
+        self.topn_filter.is_some()
+    }
+
+    /// Updates the metric for a track based on object extensions.
+    /// Should be called for every object that flows through the relay.
+    /// Returns the extracted metric value, if any.
+    #[inline]
+    pub fn update_topn_metric(
+        &self,
+        namespace: &TrackNamespace,
+        track_name: &str,
+        extensions: &[(u64, u64)],
+    ) -> Option<u64> {
+        self.topn_filter
+            .as_ref()
+            .and_then(|f| f.update_metric(namespace, track_name, extensions))
+    }
+
+    /// Checks if a track is in the top-n (should be forwarded).
+    /// Returns true if Top-N is disabled or track is in top-n.
+    #[inline]
+    pub fn filter_topn(&self, namespace: &TrackNamespace, track_name: &str) -> bool {
+        match &self.topn_filter {
+            Some(f) => f.should_forward(namespace, track_name),
+            None => true,
+        }
+    }
+
+    /// Returns Top-N filter statistics, if enabled.
+    pub fn topn_stats(&self) -> Option<TopNStats> {
+        self.topn_filter.as_ref().map(|f| f.stats())
+    }
+
     /// Checks if an object should be forwarded to a subscription.
     /// This is the main hot-path function.
     ///
-    /// Combines all three filter stages:
+    /// Combines all four filter stages:
     /// 1. Track Extension Filter (if extensions provided)
     /// 2. Track Filter (checked at subscription time, not here)
     /// 3. Object Filter
+    /// 4. Top-N Filter (if namespace/track_name provided)
     #[inline]
     pub fn should_forward(
         &self,
@@ -346,6 +402,51 @@ impl FilterPipeline {
 
         // Stage 3: Object Filter
         self.filter_object(sub_id, obj)
+    }
+
+    /// Checks if an object should be forwarded, including Top-N filtering.
+    /// Extended version that includes track identification for Top-N.
+    ///
+    /// Combines all four filter stages:
+    /// 1. Track Extension Filter
+    /// 2. Track Filter (checked at subscription time)
+    /// 3. Object Filter
+    /// 4. Top-N Filter
+    #[inline]
+    pub fn should_forward_with_topn(
+        &self,
+        sub_id: SubscriptionId,
+        obj: &ObjectInfo,
+        namespace: &TrackNamespace,
+        track_name: &str,
+        track_extensions: Option<&[(u64, u64)]>,
+    ) -> bool {
+        if !self.is_enabled() {
+            return true;
+        }
+
+        // Stage 1: Track Extension Filter
+        if self.config.track_ext_enabled {
+            if let Some(exts) = track_extensions {
+                if !self.filter_track_extensions(exts) {
+                    return false;
+                }
+            }
+        }
+
+        // Stage 2 is checked at subscription time, not per-object
+
+        // Stage 3: Object Filter
+        if !self.filter_object(sub_id, obj) {
+            return false;
+        }
+
+        // Stage 4: Top-N Filter
+        // Update metric if extensions provided, then check if in top-n
+        if let Some(exts) = track_extensions {
+            self.update_topn_metric(namespace, track_name, exts);
+        }
+        self.filter_topn(namespace, track_name)
     }
 
     /// Batch filter for multiple subscriptions.
@@ -384,6 +485,52 @@ impl FilterPipeline {
             .collect()
     }
 
+    /// Batch filter with Top-N support.
+    /// Returns a list of subscription IDs that should receive the object.
+    pub fn filter_batch_with_topn(
+        &self,
+        subscriptions: &[SubscriptionId],
+        obj: &ObjectInfo,
+        namespace: &TrackNamespace,
+        track_name: &str,
+        track_extensions: Option<&[(u64, u64)]>,
+    ) -> Vec<SubscriptionId> {
+        if !self.is_enabled() {
+            return subscriptions.to_vec();
+        }
+
+        // Stage 1: Track Extension Filter (once for all)
+        if self.config.track_ext_enabled {
+            if let Some(exts) = track_extensions {
+                if !self.filter_track_extensions(exts) {
+                    return Vec::new();
+                }
+            }
+        }
+
+        // Stage 4: Top-N Filter (once for all)
+        if let Some(exts) = track_extensions {
+            self.update_topn_metric(namespace, track_name, exts);
+        }
+        if !self.filter_topn(namespace, track_name) {
+            return Vec::new();
+        }
+
+        // Stage 3: Object Filter for each subscription
+        let filters = self.object_filters.read();
+
+        subscriptions
+            .iter()
+            .filter(|&&sub_id| {
+                filters
+                    .get(sub_id)
+                    .map(|f| f.matches(obj))
+                    .unwrap_or(true)
+            })
+            .copied()
+            .collect()
+    }
+
     // ==================== Statistics ====================
 
     /// Returns a report of all pipeline statistics.
@@ -397,10 +544,14 @@ impl FilterPipeline {
             object.merge(&filter.stats.snapshot());
         }
 
+        // Top-N stats
+        let topn = self.topn_filter.as_ref().map(|f| f.stats());
+
         PipelineReport {
             track_ext,
             track,
             object,
+            topn,
         }
     }
 
@@ -411,6 +562,10 @@ impl FilterPipeline {
 
         for (_, filter) in self.object_filters.read().iter() {
             filter.stats.reset();
+        }
+
+        if let Some(ref topn) = self.topn_filter {
+            topn.reset_stats();
         }
     }
 
@@ -469,6 +624,9 @@ pub struct PipelineReport {
 
     /// Object filter statistics (aggregated across all subscriptions).
     pub object: FilterStatsSnapshot,
+
+    /// Top-N filter statistics (if enabled).
+    pub topn: Option<TopNStats>,
 }
 
 impl PipelineReport {
@@ -498,6 +656,18 @@ impl fmt::Display for PipelineReport {
         writeln!(f)?;
         writeln!(f, "Object Filter (aggregated):")?;
         write!(f, "{}", self.object)?;
+
+        if let Some(ref topn) = self.topn {
+            writeln!(f)?;
+            writeln!(f)?;
+            writeln!(f, "Top-N Filter:")?;
+            writeln!(f, "  Objects processed: {}", topn.objects_processed)?;
+            writeln!(f, "  Objects filtered:  {}", topn.objects_filtered)?;
+            writeln!(f, "  Filter rate:       {:.2}%", topn.filter_rate())?;
+            writeln!(f, "  Tracks monitored:  {}", topn.tracks_monitored)?;
+            writeln!(f, "  Current top-n:     {}", topn.current_top_n)?;
+        }
+
         Ok(())
     }
 }

@@ -13,6 +13,20 @@ use crate::{data, message, serve};
 
 use super::{Publisher, SessionError, Writer};
 
+/// Callback for per-object filtering based on extension headers.
+///
+/// The callback receives:
+/// - `extensions`: the object's extension headers as (type, value) pairs
+///
+/// Returns:
+/// - `true` to forward the object
+/// - `false` to drop the object
+///
+/// This is used for scenarios like active speaker detection where objects
+/// carry metrics (e.g., audio level) in extension headers, and only objects
+/// from top-N tracks should be forwarded.
+pub type ObjectFilterFn = Arc<dyn Fn(&[(u64, u64)]) -> bool + Send + Sync>;
+
 #[derive(Debug, Clone)]
 pub struct PublishInfo {
     pub id: u64,
@@ -177,6 +191,28 @@ impl Published {
         res
     }
 
+    /// Serve immediately with per-object filtering based on extension headers.
+    ///
+    /// This is used for scenarios like active speaker detection where:
+    /// 1. Each object carries a metric (e.g., audio level) in extension headers
+    /// 2. The filter callback updates a TopN filter with the metric
+    /// 3. The filter returns whether this object should be forwarded
+    ///
+    /// # Arguments
+    /// * `track` - The track reader to serve from
+    /// * `filter` - Callback that receives extension headers and returns true to forward
+    pub async fn serve_immediately_with_filter(
+        mut self,
+        track: serve::TrackReader,
+        filter: ObjectFilterFn,
+    ) -> Result<(), SessionError> {
+        let res = self.serve_immediately_filtered_inner(track, filter).await;
+        if let Err(err) = &res {
+            self.close(err.clone().into())?;
+        }
+        res
+    }
+
     async fn serve_inner(&mut self, track: serve::TrackReader) -> Result<(), SessionError> {
         self.ok().await?;
 
@@ -228,6 +264,24 @@ impl Published {
         }
     }
 
+    async fn serve_immediately_filtered_inner(
+        &mut self,
+        track: serve::TrackReader,
+        filter: ObjectFilterFn,
+    ) -> Result<(), SessionError> {
+        // Don't wait for PUBLISH_OK - start streaming immediately with filtering
+
+        match track.mode().await? {
+            TrackReaderMode::Stream(_stream) => panic!("deprecated"),
+            TrackReaderMode::Subgroups(subgroups) => {
+                self.serve_subgroups_filtered(subgroups, filter).await
+            }
+            TrackReaderMode::Datagrams(datagrams) => {
+                self.serve_datagrams_filtered(datagrams, filter).await
+            }
+        }
+    }
+
     async fn serve_subgroups(
         &mut self,
         mut subgroups: serve::SubgroupsReader,
@@ -239,21 +293,15 @@ impl Published {
             tokio::select! {
                 res = subgroups.next(), if done.is_none() => match res {
                     Ok(Some(subgroup)) => {
-                        let header = data::SubgroupHeader {
-                            header_type: data::StreamHeaderType::SubgroupIdExt,
-                            track_alias: self.info.track_alias,
-                            group_id: subgroup.group_id,
-                            subgroup_id: Some(subgroup.subgroup_id),
-                            publisher_priority: Some(subgroup.priority),
-                        };
-
+                        // Header type will be determined in serve_subgroup based on extension headers
+                        let track_alias = self.info.track_alias;
                         let publisher = self.publisher.clone();
                         let state = self.state.clone();
                         let info = subgroup.info.clone();
                         let mlog = self.mlog.clone();
 
                         tasks.push(async move {
-                            if let Err(err) = Self::serve_subgroup(header, subgroup, publisher, state, mlog).await {
+                            if let Err(err) = Self::serve_subgroup(track_alias, subgroup, publisher, state, mlog).await {
                                 log::warn!("failed to serve subgroup: {:?}, error: {}", info, err);
                             }
                         });
@@ -269,7 +317,7 @@ impl Published {
     }
 
     async fn serve_subgroup(
-        header: data::SubgroupHeader,
+        track_alias: u64,
         mut subgroup_reader: serve::SubgroupReader,
         mut publisher: Publisher,
         state: State<PublishedState>,
@@ -277,11 +325,37 @@ impl Published {
     ) -> Result<(), SessionError> {
         log::info!(
             "[PUBLISHED] serve_subgroup: STARTING - track_alias={}, group_id={}, subgroup_id={:?}, priority={}",
-            header.track_alias,
+            track_alias,
             subgroup_reader.group_id,
             subgroup_reader.subgroup_id,
             subgroup_reader.priority
         );
+
+        // Read the first object to determine if we have extension headers
+        let first_object = match subgroup_reader.next().await? {
+            Some(obj) => obj,
+            None => {
+                log::debug!("[PUBLISHED] serve_subgroup: no objects in subgroup, skipping");
+                return Ok(());
+            }
+        };
+
+        // Determine header type based on whether extension headers are present
+        // Use ZeroIdEndOfGroup variants (no subgroup_id on wire, signals EOG) for compatibility with moq-web
+        let has_extension_headers = !first_object.extension_headers.is_empty();
+        let header_type = if has_extension_headers {
+            data::StreamHeaderType::SubgroupZeroIdExtEndOfGroup
+        } else {
+            data::StreamHeaderType::SubgroupZeroIdEndOfGroup
+        };
+
+        let header = data::SubgroupHeader {
+            header_type,
+            track_alias,
+            group_id: subgroup_reader.group_id,
+            subgroup_id: None, // ZeroId variants don't include subgroup_id on wire
+            publisher_priority: Some(subgroup_reader.priority),
+        };
 
         let mut send_stream = publisher.open_uni().await?;
         send_stream.set_priority(subgroup_reader.priority as i32);
@@ -289,12 +363,13 @@ impl Published {
         let mut writer = Writer::new(send_stream);
 
         log::info!(
-            "[PUBLISHED] serve_subgroup: sending header - track_alias={}, group_id={}, subgroup_id={:?}, priority={:?}, header_type={:?}",
+            "[PUBLISHED] serve_subgroup: sending header - track_alias={}, group_id={}, subgroup_id={:?}, priority={:?}, header_type={:?}, has_ext={}",
             header.track_alias,
             header.group_id,
             header.subgroup_id,
             header.publisher_priority,
-            header.header_type
+            header.header_type,
+            has_extension_headers
         );
 
         writer.encode(&header).await?;
@@ -308,44 +383,73 @@ impl Published {
             }
         }
 
-        let mut object_count = 0;
-        while let Some(mut subgroup_object_reader) = subgroup_reader.next().await? {
-            let subgroup_object = data::SubgroupObjectExt {
-                object_id_delta: 0,
-                extension_headers: subgroup_object_reader.extension_headers.clone(),
-                payload_length: subgroup_object_reader.size,
-                status: if subgroup_object_reader.size == 0 {
-                    Some(subgroup_object_reader.status)
-                } else {
-                    None
-                },
-            };
+        // Helper to write an object with or without extension headers
+        async fn write_object(
+            writer: &mut Writer,
+            object_reader: &mut serve::SubgroupObjectReader,
+            has_extension_headers: bool,
+            object_count: u64,
+            subgroup_reader: &serve::SubgroupReader,
+            state: &State<PublishedState>,
+            mlog: &Option<Arc<Mutex<mlog::MlogWriter>>>,
+        ) -> Result<(), SessionError> {
+            if has_extension_headers {
+                let subgroup_object = data::SubgroupObjectExt {
+                    object_id_delta: 0,
+                    extension_headers: object_reader.extension_headers.clone(),
+                    payload_length: object_reader.size,
+                    status: if object_reader.size == 0 {
+                        Some(object_reader.status)
+                    } else {
+                        None
+                    },
+                };
 
-            log::debug!(
-                "[PUBLISHED] serve_subgroup: sending object #{} - object_id={}, object_id_delta={}, payload_length={}, status={:?}",
-                object_count + 1,
-                subgroup_object_reader.object_id,
-                subgroup_object.object_id_delta,
-                subgroup_object.payload_length,
-                subgroup_object.status
-            );
+                log::debug!(
+                    "[PUBLISHED] serve_subgroup: sending object #{} (with ext) - object_id={}, payload_length={}, status={:?}",
+                    object_count + 1,
+                    object_reader.object_id,
+                    subgroup_object.payload_length,
+                    subgroup_object.status
+                );
 
-            writer.encode(&subgroup_object).await?;
+                writer.encode(&subgroup_object).await?;
 
-            if let Some(ref mlog) = mlog {
-                if let Ok(mut mlog_guard) = mlog.lock() {
-                    let time = mlog_guard.elapsed_ms();
-                    let stream_id = 0;
-                    let event = mlog::subgroup_object_ext_created(
-                        time,
-                        stream_id,
-                        subgroup_reader.group_id,
-                        subgroup_reader.subgroup_id,
-                        subgroup_object_reader.object_id,
-                        &subgroup_object,
-                    );
-                    let _ = mlog_guard.add_event(event);
+                if let Some(ref mlog) = mlog {
+                    if let Ok(mut mlog_guard) = mlog.lock() {
+                        let time = mlog_guard.elapsed_ms();
+                        let stream_id = 0;
+                        let event = mlog::subgroup_object_ext_created(
+                            time,
+                            stream_id,
+                            subgroup_reader.group_id,
+                            subgroup_reader.subgroup_id,
+                            object_reader.object_id,
+                            &subgroup_object,
+                        );
+                        let _ = mlog_guard.add_event(event);
+                    }
                 }
+            } else {
+                let subgroup_object = data::SubgroupObject {
+                    object_id_delta: 0,
+                    payload_length: object_reader.size,
+                    status: if object_reader.size == 0 {
+                        Some(object_reader.status)
+                    } else {
+                        None
+                    },
+                };
+
+                log::debug!(
+                    "[PUBLISHED] serve_subgroup: sending object #{} (no ext) - object_id={}, payload_length={}, status={:?}",
+                    object_count + 1,
+                    object_reader.object_id,
+                    subgroup_object.payload_length,
+                    subgroup_object.status
+                );
+
+                writer.encode(&subgroup_object).await?;
             }
 
             state
@@ -353,21 +457,50 @@ impl Published {
                 .ok_or(ServeError::Done)?
                 .update_largest_location(
                     subgroup_reader.group_id,
-                    subgroup_object_reader.object_id,
+                    object_reader.object_id,
                 )?;
 
-            while let Some(chunk) = subgroup_object_reader.read().await? {
+            while let Some(chunk) = object_reader.read().await? {
                 writer.write(&chunk).await?;
             }
 
+            Ok(())
+        }
+
+        // Write the first object
+        let mut object_count = 0;
+        let mut first_object = first_object;
+        write_object(
+            &mut writer,
+            &mut first_object,
+            has_extension_headers,
+            object_count,
+            &subgroup_reader,
+            &state,
+            &mlog,
+        ).await?;
+        object_count += 1;
+
+        // Continue with remaining objects
+        while let Some(mut subgroup_object_reader) = subgroup_reader.next().await? {
+            write_object(
+                &mut writer,
+                &mut subgroup_object_reader,
+                has_extension_headers,
+                object_count,
+                &subgroup_reader,
+                &state,
+                &mlog,
+            ).await?;
             object_count += 1;
         }
 
         log::info!(
-            "[PUBLISHED] serve_subgroup: completed subgroup (group_id={}, subgroup_id={:?}, {} objects sent)",
+            "[PUBLISHED] serve_subgroup: completed subgroup (group_id={}, subgroup_id={:?}, {} objects sent, has_ext={})",
             subgroup_reader.group_id,
             subgroup_reader.subgroup_id,
-            object_count
+            object_count,
+            has_extension_headers
         );
 
         Ok(())
@@ -449,6 +582,380 @@ impl Published {
         log::info!(
             "[PUBLISHED] serve_datagrams: completed ({} datagrams sent)",
             datagram_count
+        );
+
+        Ok(())
+    }
+
+    // ==================== Filtered Serving Methods ====================
+
+    async fn serve_subgroups_filtered(
+        &mut self,
+        mut subgroups: serve::SubgroupsReader,
+        filter: ObjectFilterFn,
+    ) -> Result<(), SessionError> {
+        let mut tasks = FuturesUnordered::new();
+        let mut done: Option<Result<(), ServeError>> = None;
+
+        loop {
+            tokio::select! {
+                res = subgroups.next(), if done.is_none() => match res {
+                    Ok(Some(subgroup)) => {
+                        // Header type will be determined in serve_subgroup_filtered based on extension headers
+                        let track_alias = self.info.track_alias;
+                        let publisher = self.publisher.clone();
+                        let state = self.state.clone();
+                        let info = subgroup.info.clone();
+                        let mlog = self.mlog.clone();
+                        let filter = filter.clone();
+
+                        tasks.push(async move {
+                            if let Err(err) = Self::serve_subgroup_filtered(
+                                track_alias, subgroup, publisher, state, mlog, filter
+                            ).await {
+                                log::warn!("failed to serve subgroup (filtered): {:?}, error: {}", info, err);
+                            }
+                        });
+                    },
+                    Ok(None) => done = Some(Ok(())),
+                    Err(err) => done = Some(Err(err)),
+                },
+                res = self.closed(), if done.is_none() => done = Some(res),
+                _ = tasks.next(), if !tasks.is_empty() => {},
+                else => return Ok(done.unwrap()?),
+            }
+        }
+    }
+
+    async fn serve_subgroup_filtered(
+        track_alias: u64,
+        mut subgroup_reader: serve::SubgroupReader,
+        mut publisher: Publisher,
+        state: State<PublishedState>,
+        mlog: Option<Arc<Mutex<mlog::MlogWriter>>>,
+        filter: ObjectFilterFn,
+    ) -> Result<(), SessionError> {
+        log::info!(
+            "[PUBLISHED] serve_subgroup_filtered: STARTING - track_alias={}, group_id={}, subgroup_id={:?}, priority={}",
+            track_alias,
+            subgroup_reader.group_id,
+            subgroup_reader.subgroup_id,
+            subgroup_reader.priority
+        );
+
+        // Read the first object to determine if we have extension headers
+        let first_object = match subgroup_reader.next().await? {
+            Some(obj) => obj,
+            None => {
+                log::debug!("[PUBLISHED] serve_subgroup_filtered: no objects in subgroup, skipping");
+                return Ok(());
+            }
+        };
+
+        // Determine header type based on whether extension headers are present
+        // Use ZeroIdEndOfGroup variants (no subgroup_id on wire, signals EOG) for compatibility with moq-web
+        let has_extension_headers = !first_object.extension_headers.is_empty();
+        let header_type = if has_extension_headers {
+            data::StreamHeaderType::SubgroupZeroIdExtEndOfGroup
+        } else {
+            data::StreamHeaderType::SubgroupZeroIdEndOfGroup
+        };
+
+        let header = data::SubgroupHeader {
+            header_type,
+            track_alias,
+            group_id: subgroup_reader.group_id,
+            subgroup_id: None, // ZeroId variants don't include subgroup_id on wire
+            publisher_priority: Some(subgroup_reader.priority),
+        };
+
+        let mut send_stream = publisher.open_uni().await?;
+        send_stream.set_priority(subgroup_reader.priority as i32);
+
+        let mut writer = Writer::new(send_stream);
+
+        log::info!(
+            "[PUBLISHED] serve_subgroup_filtered: sending header - track_alias={}, group_id={}, subgroup_id={:?}, priority={:?}, header_type={:?}, has_ext={}",
+            header.track_alias,
+            header.group_id,
+            header.subgroup_id,
+            header.publisher_priority,
+            header.header_type,
+            has_extension_headers
+        );
+
+        writer.encode(&header).await?;
+
+        if let Some(ref mlog) = mlog {
+            if let Ok(mut mlog_guard) = mlog.lock() {
+                let time = mlog_guard.elapsed_ms();
+                let stream_id = 0;
+                let event = mlog::subgroup_header_created(time, stream_id, &header);
+                let _ = mlog_guard.add_event(event);
+            }
+        }
+
+        // Helper to extract extensions for filter
+        fn extract_extensions(object_reader: &serve::SubgroupObjectReader) -> Vec<(u64, u64)> {
+            object_reader
+                .extension_headers
+                .0
+                .iter()
+                .filter_map(|kvp| {
+                    if let crate::coding::Value::IntValue(v) = &kvp.value {
+                        Some((kvp.key, *v))
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        }
+
+        // Helper to write an object with or without extension headers
+        async fn write_object(
+            writer: &mut Writer,
+            object_reader: &mut serve::SubgroupObjectReader,
+            has_extension_headers: bool,
+            object_count: u64,
+            subgroup_reader: &serve::SubgroupReader,
+            state: &State<PublishedState>,
+            mlog: &Option<Arc<Mutex<mlog::MlogWriter>>>,
+        ) -> Result<(), SessionError> {
+            if has_extension_headers {
+                let subgroup_object = data::SubgroupObjectExt {
+                    object_id_delta: 0,
+                    extension_headers: object_reader.extension_headers.clone(),
+                    payload_length: object_reader.size,
+                    status: if object_reader.size == 0 {
+                        Some(object_reader.status)
+                    } else {
+                        None
+                    },
+                };
+
+                log::debug!(
+                    "[PUBLISHED] serve_subgroup_filtered: forwarding object #{} (with ext) - object_id={}, payload_length={}",
+                    object_count + 1,
+                    object_reader.object_id,
+                    subgroup_object.payload_length
+                );
+
+                writer.encode(&subgroup_object).await?;
+
+                if let Some(ref mlog) = mlog {
+                    if let Ok(mut mlog_guard) = mlog.lock() {
+                        let time = mlog_guard.elapsed_ms();
+                        let stream_id = 0;
+                        let event = mlog::subgroup_object_ext_created(
+                            time,
+                            stream_id,
+                            subgroup_reader.group_id,
+                            subgroup_reader.subgroup_id,
+                            object_reader.object_id,
+                            &subgroup_object,
+                        );
+                        let _ = mlog_guard.add_event(event);
+                    }
+                }
+            } else {
+                let subgroup_object = data::SubgroupObject {
+                    object_id_delta: 0,
+                    payload_length: object_reader.size,
+                    status: if object_reader.size == 0 {
+                        Some(object_reader.status)
+                    } else {
+                        None
+                    },
+                };
+
+                log::debug!(
+                    "[PUBLISHED] serve_subgroup_filtered: forwarding object #{} (no ext) - object_id={}, payload_length={}",
+                    object_count + 1,
+                    object_reader.object_id,
+                    subgroup_object.payload_length
+                );
+
+                writer.encode(&subgroup_object).await?;
+            }
+
+            state
+                .lock_mut()
+                .ok_or(ServeError::Done)?
+                .update_largest_location(
+                    subgroup_reader.group_id,
+                    object_reader.object_id,
+                )?;
+
+            while let Some(chunk) = object_reader.read().await? {
+                writer.write(&chunk).await?;
+            }
+
+            Ok(())
+        }
+
+        let mut object_count = 0;
+        let mut filtered_count = 0;
+
+        // Process the first object
+        let extensions = extract_extensions(&first_object);
+        let should_forward = filter(&extensions);
+        let mut first_object = first_object;
+
+        if should_forward {
+            write_object(
+                &mut writer,
+                &mut first_object,
+                has_extension_headers,
+                object_count,
+                &subgroup_reader,
+                &state,
+                &mlog,
+            ).await?;
+            object_count += 1;
+        } else {
+            // Consume the payload but don't forward
+            while let Some(_chunk) = first_object.read().await? {}
+            filtered_count += 1;
+        }
+
+        // Continue with remaining objects
+        while let Some(mut subgroup_object_reader) = subgroup_reader.next().await? {
+            let extensions = extract_extensions(&subgroup_object_reader);
+            let should_forward = filter(&extensions);
+
+            if !should_forward {
+                // Skip this object - consume the payload but don't forward
+                while let Some(_chunk) = subgroup_object_reader.read().await? {}
+                filtered_count += 1;
+                continue;
+            }
+
+            write_object(
+                &mut writer,
+                &mut subgroup_object_reader,
+                has_extension_headers,
+                object_count,
+                &subgroup_reader,
+                &state,
+                &mlog,
+            ).await?;
+            object_count += 1;
+        }
+
+        log::info!(
+            "[PUBLISHED] serve_subgroup_filtered: completed (group_id={}, subgroup_id={:?}, {} objects sent, {} filtered, has_ext={})",
+            subgroup_reader.group_id,
+            subgroup_reader.subgroup_id,
+            object_count,
+            filtered_count,
+            has_extension_headers
+        );
+
+        Ok(())
+    }
+
+    async fn serve_datagrams_filtered(
+        &mut self,
+        mut datagrams: serve::DatagramsReader,
+        filter: ObjectFilterFn,
+    ) -> Result<(), SessionError> {
+        log::debug!("[PUBLISHED] serve_datagrams_filtered: starting");
+
+        let mut datagram_count = 0;
+        let mut filtered_count = 0;
+
+        while let Some(datagram) = datagrams.read().await? {
+            // Convert extension headers to (type, value) pairs for the filter
+            // Only include integer values (metrics); skip bytes values
+            let extensions: Vec<(u64, u64)> = datagram
+                .extension_headers
+                .0
+                .iter()
+                .filter_map(|kvp| {
+                    if let crate::coding::Value::IntValue(v) = &kvp.value {
+                        Some((kvp.key, *v))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            // Call the filter to check if this datagram should be forwarded
+            let should_forward = filter(&extensions);
+
+            if !should_forward {
+                filtered_count += 1;
+                continue;
+            }
+
+            let has_extension_headers = !datagram.extension_headers.is_empty();
+            let datagram_type = if has_extension_headers {
+                data::DatagramType::ObjectIdPayloadExt
+            } else {
+                data::DatagramType::ObjectIdPayload
+            };
+
+            let encoded_datagram = data::Datagram {
+                datagram_type,
+                track_alias: self.info.track_alias,
+                group_id: datagram.group_id,
+                object_id: Some(datagram.object_id),
+                publisher_priority: Some(datagram.priority),
+                extension_headers: if has_extension_headers {
+                    Some(datagram.extension_headers.clone())
+                } else {
+                    None
+                },
+                status: None,
+                payload: Some(datagram.payload),
+            };
+
+            let payload_len = encoded_datagram
+                .payload
+                .as_ref()
+                .map(|p| p.len())
+                .unwrap_or(0);
+            let mut buffer = bytes::BytesMut::with_capacity(payload_len + 100);
+            encoded_datagram.encode(&mut buffer)?;
+
+            log::debug!(
+                "[PUBLISHED] serve_datagrams_filtered: forwarding datagram #{} - track_alias={}, group_id={}, object_id={}, payload_len={}",
+                datagram_count + 1,
+                encoded_datagram.track_alias,
+                encoded_datagram.group_id,
+                encoded_datagram.object_id.unwrap(),
+                payload_len
+            );
+
+            if let Some(ref mlog) = self.mlog {
+                if let Ok(mut mlog_guard) = mlog.lock() {
+                    let time = mlog_guard.elapsed_ms();
+                    let stream_id = 0;
+                    let _ = mlog_guard.add_event(mlog::object_datagram_created(
+                        time,
+                        stream_id,
+                        &encoded_datagram,
+                    ));
+                }
+            }
+
+            self.publisher.send_datagram(buffer.into()).await?;
+
+            self.state
+                .lock_mut()
+                .ok_or(ServeError::Done)?
+                .update_largest_location(
+                    encoded_datagram.group_id,
+                    encoded_datagram.object_id.unwrap(),
+                )?;
+
+            datagram_count += 1;
+        }
+
+        log::info!(
+            "[PUBLISHED] serve_datagrams_filtered: completed ({} datagrams sent, {} filtered)",
+            datagram_count,
+            filtered_count
         );
 
         Ok(())

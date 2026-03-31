@@ -6,6 +6,8 @@ members = [
 	"moq-sub",
 	"moq-api",
 	"moq-clock-ietf",
+	"moq-chat",
+	"moq-filter-demo",
 	"moq-native-ietf",
 	"moq-catalog",
 	"moq-test-client",

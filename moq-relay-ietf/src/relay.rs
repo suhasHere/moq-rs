@@ -126,6 +126,17 @@ impl Relay {
             log::info!("filter pipeline enabled");
         }
 
+        if filter_pipeline.is_topn_enabled() {
+            let topn_config = &filter_pipeline.config().topn_config;
+            log::info!(
+                "top-n filter enabled: n={}, metric_type=0x{:x}, decay={}ms, recompute={}ms",
+                topn_config.n,
+                topn_config.metric_extension_type,
+                topn_config.decay_after.as_millis(),
+                topn_config.recompute_interval.as_millis()
+            );
+        }
+
         // Create subscriber registry for SUBSCRIBE_NAMESPACE tracking
         let subscriber_registry = SubscriberRegistry::new();
 

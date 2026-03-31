@@ -1,17 +1,18 @@
 use std::sync::Arc;
+use std::time::Duration;
 
 use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
 use moq_transport::{
     coding::{KeyValuePairs, TrackNamespace},
-    message,
+    message::{self, TrackFilter},
     serve::{ServeError, TracksReader},
     session::{
-        PublishNamespace, Publisher, SessionError, SubscribeNamespaceReceived, Subscribed,
-        TrackStatusRequested,
+        ObjectFilterFn, PublishNamespace, Publisher, SessionError, SubscribeNamespaceReceived,
+        Subscribed, TrackStatusRequested,
     },
 };
 
-use crate::filter::FilterPipeline;
+use crate::filter::{FilterPipeline, TopNConfig, TopNFilter};
 use crate::{Locals, RemotesConsumer, SubscriberRegistry};
 
 /// Producer of tracks to a remote Subscriber
@@ -80,6 +81,41 @@ impl Producer {
         self.publisher
             .publish_namespace(tracks.namespace.clone())
             .await
+    }
+
+    /// Creates a TopNFilter from a TrackFilter (from SUBSCRIBE_NAMESPACE).
+    ///
+    /// If TrackFilter is present, creates a TopNFilter using its settings.
+    /// Falls back to global filter_pipeline settings for any missing values.
+    fn create_topn_filter_from_track_filter(
+        track_filter: Option<&TrackFilter>,
+        filter_pipeline: Option<&Arc<FilterPipeline>>,
+    ) -> Option<Arc<TopNFilter>> {
+        // If we have a TrackFilter from SUBSCRIBE_NAMESPACE, use its settings
+        if let Some(tf) = track_filter {
+            let config = TopNConfig {
+                n: tf.max_tracks_selected as usize,
+                metric_extension_type: tf.property_type,
+                decay_after: Duration::from_millis(tf.timeout_ms),
+                // Use a reasonable recompute interval (half of decay or 500ms, whichever is smaller)
+                recompute_interval: Duration::from_millis(
+                    (tf.timeout_ms / 2).max(100).min(500)
+                ),
+                higher_is_better: true,
+            };
+            return Some(Arc::new(TopNFilter::new(config)));
+        }
+
+        // Fall back to global filter pipeline if enabled
+        if let Some(pipeline) = filter_pipeline {
+            if pipeline.is_topn_enabled() {
+                // Clone the global config and create a new filter instance
+                let config = pipeline.config().topn_config.clone();
+                return Some(Arc::new(TopNFilter::new(config)));
+            }
+        }
+
+        None
     }
 
     pub async fn run(self) -> Result<(), SessionError> {
@@ -224,6 +260,23 @@ impl Producer {
         let namespace_prefix = subscribe_ns.namespace_prefix.clone();
         let track_filter = subscribe_ns.info.track_filter.clone();
 
+        // Create per-subscription TopN filter from TrackFilter if present
+        let topn_filter = Self::create_topn_filter_from_track_filter(
+            track_filter.as_ref(),
+            self.filter_pipeline.as_ref(),
+        );
+
+        if let Some(ref filter) = topn_filter {
+            let config = filter.config();
+            log::info!(
+                "SUBSCRIBE_NAMESPACE {:?} has top-n filter: n={}, metric_type=0x{:x}, decay={}ms",
+                namespace_prefix,
+                config.n,
+                config.metric_extension_type,
+                config.decay_after.as_millis()
+            );
+        }
+
         // Register with subscriber registry to receive PUBLISH and PUBLISH_NAMESPACE notifications
         let (_subscription_guard, mut publish_rx, mut publish_ns_rx) =
             if let Some(ref registry) = self.subscriber_registry {
@@ -313,6 +366,8 @@ impl Producer {
                                     let mut publisher = self.publisher.clone();
                                     let ns = publish_notif.namespace.clone();
                                     let name = publish_notif.track_name.clone();
+                                    let topn = topn_filter.clone();
+
                                     tokio::spawn(async move {
                                         match publisher.publish(track_reader.clone()).await {
                                             Ok(published) => {
@@ -320,10 +375,22 @@ impl Producer {
                                                     "forwarded PUBLISH for {}/{} with forward=1, streaming immediately",
                                                     ns, name
                                                 );
-                                                // serve_immediately() starts streaming without waiting for PUBLISH_OK
-                                                // Since forward=1, subscriber expects data immediately
-                                                // If subscriber sends error, serve will end and we cleanup
-                                                match published.serve_immediately(track_reader).await {
+
+                                                // Serve with TopN filtering if enabled
+                                                let result = if let Some(ref filter) = topn {
+                                                    Self::serve_with_topn_filter(
+                                                        published,
+                                                        track_reader,
+                                                        &ns,
+                                                        &name,
+                                                        filter,
+                                                    ).await
+                                                } else {
+                                                    // No TopN filter, serve directly
+                                                    published.serve_immediately(track_reader).await
+                                                };
+
+                                                match result {
                                                     Ok(()) => {
                                                         log::info!("track {}/{} serving completed", ns, name);
                                                     }
@@ -332,7 +399,6 @@ impl Producer {
                                                             "track {}/{} serving ended: {}",
                                                             ns, name, e
                                                         );
-                                                        // Cleanup handled by Published drop
                                                     }
                                                 }
                                             }
@@ -408,6 +474,65 @@ impl Producer {
         }
 
         Ok(())
+    }
+
+    /// Serves a track with TopN filtering based on per-object metrics.
+    ///
+    /// This method:
+    /// 1. Creates a filter callback that updates the TopN filter with each object's metric
+    /// 2. The callback checks if this track is in top-N and returns whether to forward
+    /// 3. Objects are only forwarded when the track is in top-N
+    ///
+    /// This enables real-time active speaker detection where audio objects carry
+    /// audio level metrics in their extension headers.
+    async fn serve_with_topn_filter(
+        published: moq_transport::session::Published,
+        track_reader: moq_transport::serve::TrackReader,
+        namespace: &TrackNamespace,
+        track_name: &str,
+        topn_filter: &Arc<TopNFilter>,
+    ) -> Result<(), moq_transport::session::SessionError> {
+        let filter = topn_filter.clone();
+        let ns = namespace.clone();
+        let name = track_name.to_string();
+        let metric_type = filter.config().metric_extension_type;
+
+        log::info!(
+            "starting filtered serve for {}/{} (top-{}, metric_type=0x{:x})",
+            namespace,
+            track_name,
+            filter.config().n,
+            metric_type
+        );
+
+        // Create the per-object filter callback
+        // This is called for every object and:
+        // 1. Extracts the metric value from extension headers
+        // 2. Updates the TopN filter with the metric
+        // 3. Returns whether this track is in top-N (should forward)
+        let object_filter: ObjectFilterFn = Arc::new(move |extensions: &[(u64, u64)]| {
+            // Update the TopN filter with the metric from this object
+            filter.update_metric(&ns, &name, extensions);
+
+            // Check if this track is currently in top-N
+            let should_forward = filter.should_forward(&ns, &name);
+
+            if !should_forward {
+                log::trace!(
+                    "object filtered: {}/{} not in top-{}",
+                    ns,
+                    name,
+                    filter.config().n
+                );
+            }
+
+            should_forward
+        });
+
+        // Serve with the per-object filter
+        published
+            .serve_immediately_with_filter(track_reader, object_filter)
+            .await
     }
 
     async fn serve_track_status(

@@ -12,6 +12,7 @@ mod config;
 mod object;
 mod pipeline;
 mod range;
+mod scalable_topn;
 mod stats;
 mod topn;
 mod track;
@@ -23,6 +24,10 @@ pub use object::{
 };
 pub use pipeline::{FilterPipeline, PipelineReport};
 pub use range::RangeSet;
+pub use scalable_topn::{
+    PublisherId, RankedTrack, RankingSnapshot, ScalableTopNConfig, ScalableTopNFilter,
+    ScalableTopNStats, SelectionChange, SubscriberId, SubscriberType, TrackKey,
+};
 pub use stats::{FilterStats, FilterStatsSnapshot};
 pub use topn::{TopNConfig, TopNFilter, TopNStats, TrackId, DEFAULT_METRIC_EXTENSION_TYPE};
 pub use track::{TrackFilter, TrackFilterMode, TrackIdentifier, TrackLimits};

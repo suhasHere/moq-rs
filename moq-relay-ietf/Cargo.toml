@@ -33,6 +33,7 @@ smallvec = "1.13"
 rustc-hash = "2.1"
 parking_lot = "0.12"
 slab = "0.4"
+arc-swap = "1.7"
 
 # Async stuff
 tokio = { version = "1", features = ["full"] }

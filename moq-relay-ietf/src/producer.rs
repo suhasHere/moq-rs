@@ -12,8 +12,8 @@ use moq_transport::{
     },
 };
 
-use crate::filter::{FilterPipeline, TopNConfig, TopNFilter};
-use crate::{Locals, RemotesConsumer, SubscriberRegistry};
+use crate::filter::{FilterPipeline, PublisherId, ScalableTopNFilter, TopNConfig, TopNFilter};
+use crate::{Locals, RemotesConsumer, SessionPublisherTracker, SubscriberRegistry};
 
 /// Producer of tracks to a remote Subscriber
 #[derive(Clone)]
@@ -21,8 +21,11 @@ pub struct Producer {
     publisher: Publisher,
     locals: Locals,
     remotes: Option<RemotesConsumer>,
-    subscriber_registry: Option<SubscriberRegistry>,
     filter_pipeline: Option<Arc<FilterPipeline>>,
+    scalable_topn_filter: Option<Arc<ScalableTopNFilter>>,
+    subscriber_registry: Option<SubscriberRegistry>,
+    /// Shared tracker to know if this session is also a publisher
+    publisher_tracker: Option<SessionPublisherTracker>,
 }
 
 impl Producer {
@@ -31,24 +34,10 @@ impl Producer {
             publisher,
             locals,
             remotes,
+            filter_pipeline: None,
+            scalable_topn_filter: None,
             subscriber_registry: None,
-            filter_pipeline: None,
-        }
-    }
-
-    /// Creates a producer with a subscriber registry.
-    pub fn with_registry(
-        publisher: Publisher,
-        locals: Locals,
-        remotes: Option<RemotesConsumer>,
-        subscriber_registry: SubscriberRegistry,
-    ) -> Self {
-        Self {
-            publisher,
-            locals,
-            remotes,
-            subscriber_registry: Some(subscriber_registry),
-            filter_pipeline: None,
+            publisher_tracker: None,
         }
     }
 
@@ -63,8 +52,56 @@ impl Producer {
             publisher,
             locals,
             remotes,
-            subscriber_registry: None,
             filter_pipeline: Some(filter_pipeline),
+            scalable_topn_filter: None,
+            subscriber_registry: None,
+            publisher_tracker: None,
+        }
+    }
+
+    /// Creates a producer with a subscriber registry.
+    pub fn with_registry(
+        publisher: Publisher,
+        locals: Locals,
+        remotes: Option<RemotesConsumer>,
+        subscriber_registry: SubscriberRegistry,
+    ) -> Self {
+        // Get the scalable filter from the registry if available
+        let scalable_topn_filter = subscriber_registry.topn_filter().cloned();
+
+        Self {
+            publisher,
+            locals,
+            remotes,
+            filter_pipeline: None,
+            scalable_topn_filter,
+            subscriber_registry: Some(subscriber_registry),
+            publisher_tracker: None,
+        }
+    }
+
+    /// Creates a producer with registry and shared publisher tracker for self-exclusion.
+    ///
+    /// The publisher_tracker should be shared with the Consumer for the same session.
+    /// This enables self-exclusion: when this session subscribes, they won't see
+    /// their own published tracks in the top-N selection.
+    pub fn with_registry_and_tracker(
+        publisher: Publisher,
+        locals: Locals,
+        remotes: Option<RemotesConsumer>,
+        subscriber_registry: SubscriberRegistry,
+        publisher_tracker: SessionPublisherTracker,
+    ) -> Self {
+        let scalable_topn_filter = subscriber_registry.topn_filter().cloned();
+
+        Self {
+            publisher,
+            locals,
+            remotes,
+            filter_pipeline: None,
+            scalable_topn_filter,
+            subscriber_registry: Some(subscriber_registry),
+            publisher_tracker: Some(publisher_tracker),
         }
     }
 
@@ -276,9 +313,26 @@ impl Producer {
         }
 
         // Register with subscriber registry to receive PUBLISH and PUBLISH_NAMESPACE notifications
+        // If this session is also a publisher, pass their publisher_id for self-exclusion
+        let session_publisher_id = self
+            .publisher_tracker
+            .as_ref()
+            .and_then(|t| t.get_publisher_id());
+
+        if session_publisher_id.is_some() {
+            log::info!(
+                "subscriber is also a publisher (id={}), enabling self-exclusion",
+                session_publisher_id.unwrap()
+            );
+        }
+
         let (_subscription_guard, mut publish_rx, mut publish_ns_rx) =
             if let Some(ref registry) = self.subscriber_registry {
-                let (id, rx, rx_ns) = registry.register(namespace_prefix.clone());
+                let (id, rx, rx_ns) = registry.register_with_publisher_id(
+                    namespace_prefix.clone(),
+                    track_filter,
+                    session_publisher_id,
+                );
                 (
                     Some(crate::SubscriptionGuard::new(registry.clone(), id)),
                     Some(rx),
@@ -365,6 +419,10 @@ impl Producer {
                                     let ns = publish_notif.namespace.clone();
                                     let name = publish_notif.track_name.clone();
                                     let topn = topn_filter.clone();
+                                    let scalable = self.scalable_topn_filter.clone();
+
+                                    // Derive publisher_id from track_alias (in production, use session auth)
+                                    let publisher_id = publish_notif.track_alias;
 
                                     tokio::spawn(async move {
                                         match publisher.publish(track_reader.clone()).await {
@@ -374,8 +432,20 @@ impl Producer {
                                                     ns, name
                                                 );
 
-                                                // Serve with TopN filtering if enabled
-                                                let result = if let Some(ref filter) = topn {
+                                                // Serve with appropriate filter
+                                                let result = if let Some(ref sf) = scalable {
+                                                    // Use scalable filter for global ranking + self-exclusion
+                                                    Self::serve_with_scalable_filter(
+                                                        published,
+                                                        track_reader,
+                                                        &ns,
+                                                        &name,
+                                                        publisher_id,
+                                                        sf,
+                                                        topn.as_ref(),
+                                                    ).await
+                                                } else if let Some(ref filter) = topn {
+                                                    // Fall back to per-subscription TopN filter
                                                     Self::serve_with_topn_filter(
                                                         published,
                                                         track_reader,
@@ -525,6 +595,68 @@ impl Producer {
             }
 
             should_forward
+        });
+
+        // Serve with the per-object filter
+        published
+            .serve_immediately_with_filter(track_reader, object_filter)
+            .await
+    }
+
+    /// Serves a track with the scalable Top-N filter for global ranking and self-exclusion.
+    ///
+    /// This method:
+    /// 1. Updates the global ScalableTopNFilter with metrics from each object
+    /// 2. The filter maintains a global ranking across all tracks
+    /// 3. Self-exclusion is handled at notification time (not per-object)
+    ///
+    /// Unlike serve_with_topn_filter which filters per-subscription, this updates
+    /// the global ranking used for self-exclusion in notify_publish.
+    async fn serve_with_scalable_filter(
+        published: moq_transport::session::Published,
+        track_reader: moq_transport::serve::TrackReader,
+        namespace: &TrackNamespace,
+        track_name: &str,
+        publisher_id: PublisherId,
+        scalable_filter: &Arc<ScalableTopNFilter>,
+        per_sub_filter: Option<&Arc<TopNFilter>>,
+    ) -> Result<(), moq_transport::session::SessionError> {
+        let global_filter = scalable_filter.clone();
+        let per_sub = per_sub_filter.cloned();
+        let ns = namespace.clone();
+        let ns_str = namespace.to_string();
+        let name = track_name.to_string();
+
+        log::info!(
+            "starting scalable filtered serve for {}/{} (publisher_id={})",
+            namespace,
+            track_name,
+            publisher_id
+        );
+
+        // Create the per-object filter callback
+        let object_filter: ObjectFilterFn = Arc::new(move |extensions: &[(u64, u64)]| {
+            // Update the global ScalableTopNFilter with metrics
+            global_filter.update_metric(publisher_id, &ns_str, &name, extensions);
+
+            // If we have a per-subscription filter, also check that
+            if let Some(ref filter) = per_sub {
+                filter.update_metric(&ns, &name, extensions);
+                let should_forward = filter.should_forward(&ns, &name);
+                if !should_forward {
+                    log::trace!(
+                        "object filtered by per-sub filter: {}/{} not in top-{}",
+                        ns,
+                        name,
+                        filter.config().n
+                    );
+                }
+                return should_forward;
+            }
+
+            // Global filter updates ranking but doesn't filter per-object
+            // Self-exclusion happens at notify_publish level
+            true
         });
 
         // Serve with the per-object filter

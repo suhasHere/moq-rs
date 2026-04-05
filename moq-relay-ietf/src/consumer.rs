@@ -9,7 +9,7 @@ use moq_transport::{
     session::{PublishNamespaceReceived, PublishReceived, SessionError, Subscriber},
 };
 
-use crate::{Coordinator, Locals, Producer, SubscriberRegistry};
+use crate::{Coordinator, Locals, Producer, SessionPublisherTracker, SubscriberRegistry};
 
 /// Consumer of tracks from a remote Publisher
 #[derive(Clone)]
@@ -19,6 +19,8 @@ pub struct Consumer {
     coordinator: Arc<dyn Coordinator>,
     forward: Option<Producer>, // Forward all announcements to this subscriber
     subscriber_registry: Option<SubscriberRegistry>,
+    /// Tracks if this session is also a publisher (for self-exclusion)
+    publisher_tracker: SessionPublisherTracker,
 }
 
 impl Consumer {
@@ -34,6 +36,7 @@ impl Consumer {
             coordinator,
             forward,
             subscriber_registry: None,
+            publisher_tracker: SessionPublisherTracker::new(),
         }
     }
 
@@ -51,7 +54,36 @@ impl Consumer {
             coordinator,
             forward,
             subscriber_registry: Some(subscriber_registry),
+            publisher_tracker: SessionPublisherTracker::new(),
         }
+    }
+
+    /// Creates a consumer with registry and shared publisher tracker.
+    ///
+    /// The publisher_tracker should be shared with the Producer for the same session.
+    /// This enables self-exclusion: when this session subscribes, they won't see
+    /// their own published tracks in the top-N selection.
+    pub fn with_registry_and_tracker(
+        subscriber: Subscriber,
+        locals: Locals,
+        coordinator: Arc<dyn Coordinator>,
+        forward: Option<Producer>,
+        subscriber_registry: SubscriberRegistry,
+        publisher_tracker: SessionPublisherTracker,
+    ) -> Self {
+        Self {
+            subscriber,
+            locals,
+            coordinator,
+            forward,
+            subscriber_registry: Some(subscriber_registry),
+            publisher_tracker,
+        }
+    }
+
+    /// Get the publisher tracker for sharing with Producer.
+    pub fn publisher_tracker(&self) -> &SessionPublisherTracker {
+        &self.publisher_tracker
     }
 
     /// Run the consumer to serve announce requests and track-level publish messages.
@@ -238,6 +270,9 @@ impl Consumer {
             namespace,
             track_name
         );
+
+        // Record that this session is a publisher (for self-exclusion)
+        self.publisher_tracker.record_publish(track_alias);
 
         // Notify subscriber registry of the new PUBLISH
         // This will trigger forwarding to matching SUBSCRIBE_NAMESPACE subscriptions

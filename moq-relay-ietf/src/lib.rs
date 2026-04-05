@@ -38,6 +38,7 @@ mod producer;
 mod relay;
 mod remote;
 mod session;
+mod session_publisher;
 mod subscriber_registry;
 mod web;
 
@@ -50,5 +51,6 @@ pub use producer::*;
 pub use relay::*;
 pub use remote::*;
 pub use session::*;
+pub use session_publisher::*;
 pub use subscriber_registry::*;
 pub use web::*;

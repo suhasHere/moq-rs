@@ -7,9 +7,9 @@ use moq_native_ietf::quic::{self, Endpoint};
 use url::Url;
 
 use crate::{
-    filter::{FilterConfig, FilterPipeline},
+    filter::{FilterConfig, FilterPipeline, ScalableTopNConfig, ScalableTopNFilter},
     Consumer, Coordinator, Locals, Producer, Remotes, RemotesConsumer, RemotesProducer, Session,
-    SubscriberRegistry,
+    SessionPublisherTracker, SubscriberRegistry,
 };
 
 // A type alias for boxed future
@@ -64,6 +64,7 @@ pub struct Relay {
     remotes: Option<(RemotesProducer, RemotesConsumer)>,
     coordinator: Arc<dyn Coordinator>,
     filter_pipeline: Arc<FilterPipeline>,
+    scalable_topn_filter: Option<Arc<ScalableTopNFilter>>,
     subscriber_registry: SubscriberRegistry,
 }
 
@@ -126,19 +127,40 @@ impl Relay {
             log::info!("filter pipeline enabled");
         }
 
-        if filter_pipeline.is_topn_enabled() {
+        // Create scalable Top-N filter for self-exclusion support if enabled
+        let scalable_topn_filter = if filter_pipeline.is_topn_enabled() {
             let topn_config = &filter_pipeline.config().topn_config;
             log::info!(
-                "top-n filter enabled: n={}, metric_type=0x{:x}, decay={}ms, recompute={}ms",
+                "scalable top-n filter enabled: n={}, metric_type=0x{:x}, decay={}ms, recompute={}ms",
                 topn_config.n,
                 topn_config.metric_extension_type,
                 topn_config.decay_after.as_millis(),
                 topn_config.recompute_interval.as_millis()
             );
-        }
+
+            // Convert TopNConfig to ScalableTopNConfig
+            let scalable_config = ScalableTopNConfig {
+                n: topn_config.n,
+                metric_extension_type: topn_config.metric_extension_type,
+                decay_after: topn_config.decay_after,
+                batch_interval: std::time::Duration::from_millis(10),
+                higher_is_better: topn_config.higher_is_better,
+                smoothing_factor: 0.3,
+                broadcast_capacity: 64,
+                individual_capacity: 16,
+            };
+
+            Some(Arc::new(ScalableTopNFilter::new(scalable_config)))
+        } else {
+            None
+        };
 
         // Create subscriber registry for SUBSCRIBE_NAMESPACE tracking
-        let subscriber_registry = SubscriberRegistry::new();
+        // Wire up scalable filter for self-exclusion support
+        let subscriber_registry = match &scalable_topn_filter {
+            Some(filter) => SubscriberRegistry::with_topn_filter(filter.clone()),
+            None => SubscriberRegistry::new(),
+        };
 
         Ok(Self {
             quic_endpoints: endpoints,
@@ -148,6 +170,7 @@ impl Relay {
             remotes: Some(remotes),
             coordinator: config.coordinator,
             filter_pipeline,
+            scalable_topn_filter,
             subscriber_registry,
         })
     }
@@ -279,26 +302,33 @@ impl Relay {
                             }
                         };
 
+                        // Create shared publisher tracker for self-exclusion
+                        // When this session publishes, Consumer records it
+                        // When this session subscribes, Producer uses it for self-exclusion
+                        let publisher_tracker = SessionPublisherTracker::new();
+
                         // Create our MoQ relay session
                         let moq_session = session;
                         let session = Session {
                             session: moq_session,
                             producer: publisher.map(|publisher| {
-                                Producer::with_registry(
+                                Producer::with_registry_and_tracker(
                                     publisher,
                                     locals.clone(),
                                     remotes,
                                     filter_pipeline.clone(),
                                     subscriber_registry.clone(),
+                                    publisher_tracker.clone(),
                                 )
                             }),
                             consumer: subscriber.map(|subscriber| {
-                                Consumer::with_registry(
+                                Consumer::with_registry_and_tracker(
                                     subscriber,
                                     locals,
                                     coordinator,
                                     forward,
                                     subscriber_registry,
+                                    publisher_tracker,
                                 )
                             }),
                         };

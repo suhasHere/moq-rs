@@ -1,6 +1,7 @@
 use std::ops;
 
 use crate::coding::TrackNamespace;
+use crate::message::TrackFilter;
 use crate::watch::State;
 use crate::{message, serve::ServeError};
 
@@ -38,20 +39,29 @@ pub struct SubscribeNs {
 
 impl SubscribeNs {
     pub(super) fn new(
+        subscriber: Subscriber,
+        request_id: u64,
+        namespace_prefix: TrackNamespace,
+    ) -> (SubscribeNs, SubscribeNsRecv) {
+        Self::new_with_filter(subscriber, request_id, namespace_prefix, None)
+    }
+
+    pub(super) fn new_with_filter(
         mut subscriber: Subscriber,
         request_id: u64,
         namespace_prefix: TrackNamespace,
+        track_filter: Option<TrackFilter>,
     ) -> (SubscribeNs, SubscribeNsRecv) {
         let info = SubscribeNsInfo {
             request_id,
             namespace_prefix: namespace_prefix.clone(),
         };
 
-        subscriber.send_message(message::SubscribeNamespace::new(
-            request_id,
-            namespace_prefix,
-            1,
-        ));
+        let mut msg = message::SubscribeNamespace::new(request_id, namespace_prefix, 1);
+        if let Some(filter) = track_filter {
+            msg.set_track_filter(filter);
+        }
+        subscriber.send_message(msg);
 
         let (send, recv) = State::default().split();
 

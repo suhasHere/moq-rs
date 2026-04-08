@@ -131,6 +131,18 @@ impl Subscriber {
         &mut self,
         namespace_prefix: TrackNamespace,
     ) -> Result<SubscribeNs, ServeError> {
+        self.subscribe_ns_with_filter(namespace_prefix, None)
+    }
+
+    /// Subscribe to a namespace with an optional track filter for top-N selection.
+    ///
+    /// If a TrackFilter is provided, the relay will only forward the top-N tracks
+    /// based on the property values in extension headers.
+    pub fn subscribe_ns_with_filter(
+        &mut self,
+        namespace_prefix: TrackNamespace,
+        track_filter: Option<message::TrackFilter>,
+    ) -> Result<SubscribeNs, ServeError> {
         let request_id = self.get_next_request_id();
 
         let mut subscribe_namespaces = self.subscribe_namespaces.lock().unwrap();
@@ -139,7 +151,8 @@ impl Subscriber {
             hash_map::Entry::Vacant(entry) => entry,
         };
 
-        let (send, recv) = SubscribeNs::new(self.clone(), request_id, namespace_prefix);
+        let (send, recv) =
+            SubscribeNs::new_with_filter(self.clone(), request_id, namespace_prefix, track_filter);
         entry.insert(recv);
 
         Ok(send)

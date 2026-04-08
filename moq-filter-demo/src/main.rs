@@ -1,22 +1,31 @@
 //! MoQ Filter Demo - Demonstrates Subscribe Namespace with Top-N Track Selection
 //!
-//! This example shows how to use TRACK_FILTER (PR #1518) for top-N track selection
-//! based on property values (e.g., active speaker selection).
+//! This example shows how to use TRACK_FILTER for top-N track selection
+//! with self-exclusion support.
 //!
-//! # Namespace Structure
+//! # Modes
 //!
-//! - Conference namespace: `conference/<room-id>`
-//! - Participant tracks: `conference/<room-id>/<participant-id>/audio`
+//! - **Publish mode**: Act as a conference participant sending audio activity
+//! - **Subscribe mode**: Subscribe to top-N active speakers
+//! - **Both mode**: Publish AND subscribe on same connection (tests self-exclusion)
 //!
 //! # Usage
 //!
 //! ```bash
+//! # Start relay with top-N enabled
+//! moq-relay-ietf --topn-enabled --topn-count 3 --topn-metric-type 256 ...
+//!
 //! # Publisher mode - simulate a participant with audio activity
 //! moq-filter-demo --server https://localhost:4443 --room meeting1 --publish --name Alice
 //!
 //! # Subscriber mode - subscribe to top N active speakers
-//! moq-filter-demo --server https://localhost:4443 --room meeting1 --top-n 3
+//! moq-filter-demo --server https://localhost:4443 --room meeting1 --subscribe --top-n 3
+//!
+//! # Both mode - test self-exclusion (publish + subscribe on same connection)
+//! moq-filter-demo --server https://localhost:4443 --room meeting1 --both --name Alice --top-n 3
 //! ```
+//!
+//! In "both" mode, Alice should NOT see her own track in the top-N results (self-exclusion).
 
 use moq_native_ietf::quic;
 
@@ -29,14 +38,14 @@ use std::time::Duration;
 
 use moq_transport::{
     coding::TrackNamespace,
-    message::{SubscribeNamespace, TrackFilter, TrackSelector},
+    message::{TrackFilter, TrackSelector},
     serve::{self, TracksReader},
-    session::{Publisher, SessionError},
+    session::{Publisher, SessionError, Subscriber},
 };
 
 #[derive(Parser, Clone)]
 #[command(name = "moq-filter-demo")]
-#[command(about = "Demo of MoQ Subscribe Namespace filtering with top-N track selection")]
+#[command(about = "Demo of MoQ Subscribe Namespace filtering with top-N track selection and self-exclusion")]
 struct Cli {
     /// Listen for UDP packets on the given address.
     #[arg(long, default_value = "[::]:0")]
@@ -50,16 +59,24 @@ struct Cli {
     #[command(flatten)]
     tls: moq_native_ietf::tls::Args,
 
-    /// Conference room identifier.
-    #[arg(short, long)]
+    /// Conference room identifier (required for network modes).
+    #[arg(short, long, default_value = "default")]
     room: String,
 
     /// Publish mode - act as a conference participant.
     #[arg(short, long)]
     publish: bool,
 
+    /// Subscribe mode - subscribe to top-N tracks.
+    #[arg(long)]
+    subscribe: bool,
+
+    /// Both mode - publish AND subscribe (tests self-exclusion).
+    #[arg(long)]
+    both: bool,
+
     /// Participant name (for publish mode).
-    #[arg(short, long, default_value = "participant")]
+    #[arg(long, default_value = "participant")]
     name: String,
 
     /// Subscribe with top-N filter - select N most active speakers.
@@ -77,6 +94,10 @@ struct Cli {
     /// Simulated audio activity update interval in milliseconds.
     #[arg(long, default_value = "1000")]
     activity_interval_ms: u64,
+
+    /// Run local demo without network connection.
+    #[arg(long)]
+    local_demo: bool,
 }
 
 /// Serve subscriptions to published tracks.
@@ -111,6 +132,7 @@ async fn publish_audio_activity(
     mut tracks_writer: serve::TracksWriter,
     participant_name: &str,
     interval_ms: u64,
+    property_type: u64,
 ) -> anyhow::Result<()> {
     let track_name = "audio";
     let track_writer = tracks_writer
@@ -121,8 +143,8 @@ async fn publish_audio_activity(
     let mut rng = rand::thread_rng();
     let mut sequence = 0u64;
 
-    println!("Publishing audio activity as '{}'", participant_name);
-    println!("Activity level will vary randomly between 0-255");
+    println!("[PUB] Publishing audio activity as '{}'", participant_name);
+    println!("[PUB] Metric extension type: 0x{:X}", property_type);
     println!();
 
     loop {
@@ -135,17 +157,107 @@ async fn publish_audio_activity(
             participant_name, activity_level, sequence
         );
 
-        let mut subgroup = subgroups.append(activity_level)?; // Priority = activity level
+        // The priority field carries the activity level for now
+        // In a real implementation, extension headers would carry the metric
+        let mut subgroup = subgroups.append(activity_level)?;
         subgroup.write(Bytes::from(message.clone()))?;
 
         println!(
-            "[{}] Activity: {:3} | Seq: {}",
+            "[PUB] {} | Activity: {:3} | Seq: {}",
             participant_name, activity_level, sequence
         );
 
         sequence += 1;
         tokio::time::sleep(Duration::from_millis(interval_ms)).await;
     }
+}
+
+/// Subscribe to a namespace with top-N filtering.
+async fn subscribe_to_namespace(
+    mut subscriber: Subscriber,
+    room: &str,
+    top_n: u64,
+    property_type: u64,
+    timeout_ms: u64,
+    self_name: Option<&str>,
+) -> anyhow::Result<()> {
+    // Create namespace prefix: conference/<room>
+    let namespace_prefix = TrackNamespace::from_utf8_path(&format!("conference/{}", room));
+
+    // Create track filter for top-N selection
+    let track_filter = TrackFilter::new(property_type, top_n, timeout_ms)
+        .map_err(|e| anyhow::anyhow!("Invalid filter: {}", e))?;
+
+    println!("[SUB] Subscribing to namespace: conference/{}", room);
+    println!("[SUB] Track filter: top-{}, property_type=0x{:X}, timeout={}ms",
+             top_n, property_type, timeout_ms);
+    if let Some(name) = self_name {
+        println!("[SUB] Self-exclusion active: {} should NOT appear in results", name);
+    }
+    println!();
+
+    // Send SUBSCRIBE_NAMESPACE with filter
+    let subscribe_ns = subscriber
+        .subscribe_ns_with_filter(namespace_prefix.clone(), Some(track_filter))
+        .context("failed to send SUBSCRIBE_NAMESPACE")?;
+
+    println!("[SUB] SUBSCRIBE_NAMESPACE sent, waiting for PUBLISH notifications...");
+    println!();
+
+    // Track received publishes
+    let mut received_tracks: Vec<String> = Vec::new();
+
+    // Handle incoming messages
+    loop {
+        tokio::select! {
+            // Check for PUBLISH notifications (via the subscription)
+            result = subscribe_ns.closed() => {
+                match result {
+                    Ok(()) => {
+                        println!("[SUB] Subscription closed normally");
+                        break;
+                    }
+                    Err(e) => {
+                        println!("[SUB] Subscription error: {}", e);
+                        break;
+                    }
+                }
+            }
+
+            // Also listen for any publish messages
+            publish = subscriber.publish_received() => {
+                if let Some(publish) = publish {
+                    let ns = publish.info.track_namespace.to_string();
+                    let track = &publish.info.track_name;
+                    let full_name = format!("{}/{}", ns, track);
+
+                    // Check if this is our own track (for self-exclusion verification)
+                    let is_self = self_name.map(|n| ns.contains(n)).unwrap_or(false);
+
+                    if is_self {
+                        println!("[SUB] *** SELF-EXCLUSION FAILED *** Received own track: {}", full_name);
+                    } else {
+                        println!("[SUB] Received PUBLISH: {}", full_name);
+                        if !received_tracks.contains(&full_name) {
+                            received_tracks.push(full_name.clone());
+                        }
+                    }
+
+                    // Print current top-N
+                    println!("[SUB] Current tracks received ({}):", received_tracks.len());
+                    for (i, t) in received_tracks.iter().enumerate() {
+                        println!("[SUB]   {}. {}", i + 1, t);
+                    }
+                    println!();
+                } else {
+                    // No more publishes
+                    tokio::time::sleep(Duration::from_millis(100)).await;
+                }
+            }
+        }
+    }
+
+    Ok(())
 }
 
 /// Demonstrates track selection algorithm locally (without network).
@@ -173,9 +285,9 @@ fn demo_track_selector(top_n: u64, property_type: u64, timeout_ms: u64) {
 
     // Simulate 5 participants with different activity levels
     let participants = [
-        (1, "Alice", 80u64),
+        (1, "Alice", 200u64),
         (2, "Bob", 150u64),
-        (3, "Charlie", 200u64),
+        (3, "Charlie", 100u64),
         (4, "Diana", 50u64),
         (5, "Eve", 180u64),
     ];
@@ -190,7 +302,7 @@ fn demo_track_selector(top_n: u64, property_type: u64, timeout_ms: u64) {
     // Add participants to selector
     println!("Adding participants to selector...");
     println!("----------------------------------------------");
-    let mut current_time = 0u64;
+    let current_time = 0u64;
 
     for (id, _name, activity) in &participants {
         let changes = selector.update_track(*id, *activity, current_time);
@@ -231,67 +343,16 @@ fn demo_track_selector(top_n: u64, property_type: u64, timeout_ms: u64) {
     }
     println!();
 
-    // Simulate activity change - Alice becomes very active
-    println!("Simulating activity change: Alice becomes very active (250)");
+    // Demonstrate self-exclusion concept
+    println!("Self-Exclusion Demo:");
     println!("----------------------------------------------");
-    current_time += 1000;
-    let changes = selector.update_track(1, 250, current_time);
-
-    for (track_id, old_state, new_state) in &changes {
-        let participant_name = participants
-            .iter()
-            .find(|(i, _, _)| i == track_id)
-            .map(|(_, n, _)| *n)
-            .unwrap_or("Unknown");
-
-        println!(
-            "  {} (ID {}): {:?} -> {:?}",
-            participant_name, track_id, old_state, new_state
-        );
-    }
+    println!("If Alice (rank 1) is also a subscriber:");
+    println!("  - Global top-3: Alice, Eve, Bob");
+    println!("  - Alice's view:  Eve, Bob, Charlie (excludes self)");
     println!();
-
-    // Show updated selection
-    println!("Updated selection (Top-{}):", top_n);
-    println!("----------------------------------------------");
-    let selected = selector.selected_tracks();
-    for track_id in &selected {
-        let participant_name = participants
-            .iter()
-            .find(|(i, _, _)| *i == *track_id)
-            .map(|(_, n, _)| *n)
-            .unwrap_or("Unknown");
-
-        let state = selector.get_state(*track_id);
-        println!("  [SELECTED] {} (ID {}) - {:?}", participant_name, track_id, state);
-    }
-
-    for (id, name, _) in &participants {
-        if !selected.contains(id) {
-            let state = selector.get_state(*id);
-            println!("  [DESELECTED] {} (ID {}) - {:?}", name, id, state);
-        }
-    }
-    println!();
-
-    // Show how to create SubscribeNamespace with filter
-    println!("Creating SubscribeNamespace with TrackFilter:");
-    println!("----------------------------------------------");
-    let mut msg = SubscribeNamespace::new(
-        42,
-        TrackNamespace::from_utf8_path("conference/meeting1"),
-        1,
-    );
-
-    let track_filter = TrackFilter::new(property_type, top_n, timeout_ms).unwrap();
-    msg.set_track_filter(track_filter);
-
-    println!("  SubscribeNamespace {{");
-    println!("    id: {},", msg.id);
-    println!("    namespace_prefix: {:?},", msg.track_namespace_prefix);
-    println!("    forward: {},", msg.forward);
-    println!("    track_filter: {:?}", msg.track_filter());
-    println!("  }}");
+    println!("Waterline calculation:");
+    println!("  - Alice's track is in top-3, so her waterline = 4th highest = 100 (Charlie)");
+    println!("  - Diana's waterline = global threshold = 150 (Bob, 3rd place)");
     println!();
 }
 
@@ -307,22 +368,34 @@ async fn main() -> anyhow::Result<()> {
 
     let config = Cli::parse();
 
-    // If not in publish mode and not connecting to server, run local demo
-    if !config.publish {
-        // Run the local track selector demo
+    // Local demo mode
+    if config.local_demo {
         demo_track_selector(config.top_n, config.property_type, config.timeout_ms);
         return Ok(());
     }
 
-    // Network mode - publish or subscribe
-    let tls = config.tls.load()?;
+    // Validate mode selection
+    let mode_count = [config.publish, config.subscribe, config.both]
+        .iter()
+        .filter(|&&x| x)
+        .count();
 
-    // Create QUIC endpoint
+    if mode_count == 0 {
+        println!("No mode selected. Use --publish, --subscribe, or --both");
+        println!("Or use --local-demo for offline demonstration");
+        return Ok(());
+    }
+
+    if mode_count > 1 && !config.both {
+        anyhow::bail!("Please select only one mode: --publish, --subscribe, or --both");
+    }
+
+    // Network mode
+    let tls = config.tls.load()?;
     let quic = quic::Endpoint::new(quic::Config::new(config.bind, None, tls))?;
 
     log::info!("connecting to server: url={}", config.server);
 
-    // Connect to server
     let (session, connection_id) = quic.client.connect(&config.server, None).await?;
 
     log::info!(
@@ -330,13 +403,70 @@ async fn main() -> anyhow::Result<()> {
         connection_id
     );
 
-    if config.publish {
-        // Publisher mode - act as a conference participant
+    println!("==============================================");
+    println!("  MoQ Filter Demo - Self-Exclusion Test");
+    println!("==============================================");
+    println!("Server: {}", config.server);
+    println!("Room: {}", config.room);
+    println!("Connection ID: {}", connection_id);
+    println!();
+
+    if config.both {
+        // BOTH mode: Publish AND Subscribe on same connection
+        // This tests self-exclusion - we should NOT see our own track
+        println!("Mode: BOTH (publish + subscribe)");
+        println!("Testing self-exclusion for: {}", config.name);
+        println!();
+
+        // Create session with both publisher and subscriber
+        // Session::connect returns (Session, Publisher, Subscriber) directly
+        let (session, publisher, subscriber) = moq_transport::session::Session::connect(session, None)
+            .await
+            .context("failed to create MoQ session")?;
+
+        // Create namespace: conference/<room>/<participant>
+        let namespace_path = format!("conference/{}/{}", config.room, config.name);
+        let namespace = TrackNamespace::from_utf8_path(&namespace_path);
+
+        let (tracks_writer, _, tracks_reader) = serve::Tracks {
+            namespace: namespace.clone(),
+        }
+        .produce();
+
+        let mut pub_clone = publisher.clone();
+        let publish_ns = pub_clone
+            .publish_namespace(namespace)
+            .await
+            .context("failed to register namespace")?;
+
+        println!("[BOTH] Publishing as: {}", config.name);
+        println!("[BOTH] Subscribing to room with top-{} filter", config.top_n);
+        println!("[BOTH] If self-exclusion works, '{}' should NOT appear in received tracks", config.name);
+        println!();
+
+        let name = config.name.clone();
+        let room = config.room.clone();
+        let top_n = config.top_n;
+        let property_type = config.property_type;
+        let timeout_ms = config.timeout_ms;
+        let interval_ms = config.activity_interval_ms;
+
+        tokio::select! {
+            res = session.run() => { let _: Result<(), SessionError> = res; }
+            res = publish_audio_activity(tracks_writer, &name, interval_ms, property_type) => { res?; }
+            res = serve_subscriptions(publisher, tracks_reader) => { res.context("failed to serve tracks")?; }
+            res = subscribe_to_namespace(subscriber, &room, top_n, property_type, timeout_ms, Some(&name)) => { res?; }
+            res = publish_ns.closed() => { res.context("namespace closed")?; }
+        }
+    } else if config.publish {
+        // PUBLISH mode only
+        println!("Mode: PUBLISH");
+        println!();
+
         let (session, mut publisher) = Publisher::connect(session)
             .await
             .context("failed to create MoQ Transport session")?;
 
-        // Create namespace: conference/<room>/<participant>
         let namespace_path = format!("conference/{}/{}", config.room, config.name);
         let namespace = TrackNamespace::from_utf8_path(&namespace_path);
 
@@ -350,18 +480,27 @@ async fn main() -> anyhow::Result<()> {
             .await
             .context("failed to register namespace")?;
 
-        println!("==============================================");
-        println!("  Publishing as: {}", config.name);
-        println!("  Room: {}", config.room);
-        println!("  Namespace: conference/{}/{}", config.room, config.name);
-        println!("==============================================");
+        println!("[PUB] Namespace: conference/{}/{}", config.room, config.name);
         println!();
 
         tokio::select! {
             res = session.run() => res.context("session error")?,
-            res = publish_audio_activity(tracks_writer, &config.name, config.activity_interval_ms) => res?,
+            res = publish_audio_activity(tracks_writer, &config.name, config.activity_interval_ms, config.property_type) => res?,
             res = serve_subscriptions(publisher, tracks_reader) => res.context("failed to serve tracks")?,
             res = publish_ns.closed() => res.context("namespace closed")?,
+        }
+    } else if config.subscribe {
+        // SUBSCRIBE mode only
+        println!("Mode: SUBSCRIBE");
+        println!();
+
+        let (session, subscriber) = Subscriber::connect(session)
+            .await
+            .context("failed to create MoQ Transport session")?;
+
+        tokio::select! {
+            res = session.run() => res.context("session error")?,
+            res = subscribe_to_namespace(subscriber, &config.room, config.top_n, config.property_type, config.timeout_ms, None) => res?,
         }
     }
 

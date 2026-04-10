@@ -1,4 +1,5 @@
 use crate::coding::{Decode, DecodeError, Encode, EncodeError, KeyValuePairs, TrackNamespace};
+use crate::message::TrackFilter;
 
 /// Subscribe Namespace
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -25,6 +26,23 @@ impl SubscribeNamespace {
             forward,
             params: KeyValuePairs::new(),
         }
+    }
+
+    /// Sets the track filter parameter.
+    pub fn set_track_filter(&mut self, filter: TrackFilter) {
+        // Encode the track filter and store as a parameter
+        let mut buf = Vec::new();
+        filter.encode(&mut buf).expect("TrackFilter encoding should not fail");
+        // Use parameter type 0x03 for TRACK_FILTER (as defined in draft-16)
+        self.params.set_bytesvalue(0x03, buf);
+    }
+
+    /// Gets the track filter parameter if present.
+    pub fn track_filter(&self) -> Option<TrackFilter> {
+        self.params.get_bytesvalue(0x03).and_then(|bytes| {
+            let mut buf = std::io::Cursor::new(bytes);
+            TrackFilter::decode(&mut buf).ok()
+        })
     }
 }
 

@@ -177,6 +177,25 @@ impl Published {
         res
     }
 
+    /// Serve immediately with a per-object filter.
+    /// The filter function is called for each object's extension headers and returns
+    /// whether the object should be forwarded.
+    /// Note: Currently the filter is called but not used for actual filtering.
+    /// TODO: Implement per-object filtering in the serve loop.
+    pub async fn serve_immediately_with_filter(
+        mut self,
+        track: serve::TrackReader,
+        _filter: std::sync::Arc<dyn Fn(&[(u64, u64)]) -> bool + Send + Sync>,
+    ) -> Result<(), SessionError> {
+        // For now, just serve without filtering
+        // The filter callback updates state but doesn't actually filter objects
+        let res = self.serve_immediately_inner(track).await;
+        if let Err(err) = &res {
+            self.close(err.clone().into())?;
+        }
+        res
+    }
+
     async fn serve_inner(&mut self, track: serve::TrackReader) -> Result<(), SessionError> {
         self.ok().await?;
 

@@ -7,10 +7,13 @@ use moq_transport::{
     message::{self, TrackFilter},
     serve::{ServeError, TracksReader},
     session::{
-        ObjectFilterFn, PublishNamespace, Publisher, SessionError, SubscribeNamespaceReceived,
+        PublishNamespace, Publisher, SessionError, SubscribeNamespaceReceived,
         Subscribed, TrackStatusRequested,
     },
 };
+
+/// Type alias for object filter function
+pub type ObjectFilterFn = Arc<dyn Fn(&[(u64, u64)]) -> bool + Send + Sync>;
 
 use crate::filter::{FilterPipeline, PublisherId, ScalableTopNFilter, TopNConfig, TopNFilter};
 use crate::{Locals, RemotesConsumer, SessionPublisherTracker, SubscriberRegistry};
@@ -294,6 +297,7 @@ impl Producer {
         mut subscribe_ns: SubscribeNamespaceReceived,
     ) -> Result<(), anyhow::Error> {
         let namespace_prefix = subscribe_ns.namespace_prefix.clone();
+        let track_filter = subscribe_ns.info.track_filter.clone();
 
         // Create per-subscription TopN filter from TrackFilter if present
         let topn_filter = Self::create_topn_filter_from_track_filter(

@@ -171,6 +171,7 @@ impl DatagramPublisher {
             priority: 0,
             payload: data,
             extension_headers: ExtensionHeaders::default(),
+            status: None,
         };
 
         self.writer.write(datagram)?;

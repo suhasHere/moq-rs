@@ -388,6 +388,7 @@ impl Publisher {
         msg: message::SubscribeNamespace,
     ) -> Result<(), SessionError> {
         let namespace_prefix = msg.track_namespace_prefix.clone();
+        let track_filter = msg.track_filter();
 
         self.filtered_namespaces
             .lock()
@@ -402,7 +403,7 @@ impl Publisher {
         };
 
         let (send, recv) =
-            SubscribeNamespaceReceived::new(self.clone(), msg.id, namespace_prefix);
+            SubscribeNamespaceReceived::new(self.clone(), msg.id, namespace_prefix, track_filter);
 
         if let Err(send) = self.subscribe_namespace_received_queue.push(send) {
             send.reject(0x0, "Internal error")?;

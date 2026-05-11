@@ -12,6 +12,15 @@ use crate::{data, message, serve};
 
 use super::{Publisher, SessionError, SubscribeInfo, Writer};
 
+/// Filter callback for group-level filtering (e.g., DTS).
+/// Called with (group_id, object_id) for each object.
+/// Returns true to forward the group, false to skip.
+pub type GroupFilterFn = Box<dyn Fn(u64, u64) -> bool + Send + Sync>;
+
+/// Callback for tracking bytes sent (for bandwidth estimation).
+/// Called with the number of bytes sent for each object.
+pub type BytesSentCallback = Box<dyn Fn(u64) + Send + Sync>;
+
 // This file defines Publisher handling of inbound Subscriptions
 
 #[derive(Debug)]
@@ -20,7 +29,20 @@ struct SubscribedState {
     closed: Result<(), ServeError>,
 }
 
+impl Default for SubscribedState {
+    fn default() -> Self {
+        Self {
+            largest_location: None,
+            closed: Ok(()),
+        }
+    }
+}
+
 impl SubscribedState {
+    fn is_closed(&self) -> bool {
+        self.closed.is_err()
+    }
+
     fn update_largest_location(&mut self, group_id: u64, object_id: u64) -> Result<(), ServeError> {
         if let Some(current_largest_location) = self.largest_location {
             let update_largest_location = Location::new(group_id, object_id);
@@ -30,15 +52,6 @@ impl SubscribedState {
         }
 
         Ok(())
-    }
-}
-
-impl Default for SubscribedState {
-    fn default() -> Self {
-        Self {
-            largest_location: None,
-            closed: Ok(()),
-        }
     }
 }
 
@@ -66,7 +79,7 @@ impl Subscribed {
         msg: message::Subscribe,
         mlog: Option<Arc<Mutex<mlog::MlogWriter>>>,
     ) -> (Self, SubscribedRecv) {
-        let (send, recv) = State::default().split();
+        let (send, recv) = State::new(SubscribedState::default()).split();
         let info = SubscribeInfo::new_from_subscribe(&msg);
         let send = Self {
             publisher,
@@ -83,7 +96,7 @@ impl Subscribed {
     }
 
     pub async fn serve(mut self, track: serve::TrackReader) -> Result<(), SessionError> {
-        let res = self.serve_inner(track).await;
+        let res = self.serve_inner(track, None, None).await;
         if let Err(err) = &res {
             self.close(err.clone().into())?;
         }
@@ -91,7 +104,65 @@ impl Subscribed {
         res
     }
 
-    async fn serve_inner(&mut self, track: serve::TrackReader) -> Result<(), SessionError> {
+    /// Serve with a group-level filter callback for DTS.
+    /// The filter is called with (group_id, object_id) for each object.
+    /// Returns true to forward, false to skip the entire group.
+    pub async fn serve_with_group_filter(
+        mut self,
+        track: serve::TrackReader,
+        filter: GroupFilterFn,
+    ) -> Result<(), SessionError> {
+        let res = self.serve_inner(track, Some(Arc::new(filter)), None).await;
+        if let Err(err) = &res {
+            self.close(err.clone().into())?;
+        }
+
+        res
+    }
+
+    /// Serve with both a group filter and a bytes-sent callback for DTS bandwidth estimation.
+    pub async fn serve_with_filter_and_bytes_callback(
+        mut self,
+        track: serve::TrackReader,
+        filter: Option<GroupFilterFn>,
+        bytes_callback: BytesSentCallback,
+    ) -> Result<(), SessionError> {
+        let res = self.serve_inner(track, filter.map(Arc::new), Some(Arc::new(bytes_callback))).await;
+        if let Err(err) = &res {
+            self.close(err.clone().into())?;
+        }
+
+        res
+    }
+
+    /// Accept the subscription but don't forward any data.
+    /// Used for DTS when this track is not currently selected.
+    /// The subscription remains active and can receive data later if the track becomes selected.
+    pub async fn serve_empty(mut self) -> Result<(), SessionError> {
+        // Send SubscribeOk to acknowledge the subscription
+        let track_alias = self.publisher.next_track_alias();
+        self.publisher
+            .send_message_and_wait(message::SubscribeOk {
+                id: self.info.id,
+                track_alias,
+                track_extensions: Default::default(),
+                params: Default::default(),
+            })
+            .await;
+
+        self.ok = true;
+
+        // Wait until the subscription is closed
+        self.closed().await?;
+        Ok(())
+    }
+
+    async fn serve_inner(
+        &mut self,
+        track: serve::TrackReader,
+        filter: Option<Arc<GroupFilterFn>>,
+        bytes_callback: Option<Arc<BytesSentCallback>>,
+    ) -> Result<(), SessionError> {
         // Update largest location before sending SubscribeOk
         let largest_location = track.largest_location();
         self.state
@@ -102,14 +173,12 @@ impl Subscribed {
         // Send SubscribeOk using send_message_and_wait to ensure it is sent at least to the QUIC stack before
         // we start serving the track.  If a subscriber gets the stream before SubscribeOk
         // then they won't recognize the track_alias in the stream header.
+        let track_alias = self.publisher.next_track_alias();
         self.publisher
             .send_message_and_wait(message::SubscribeOk {
                 id: self.info.id,
-                track_alias: self.info.id, // use subscription id as track alias
-                expires: 0,                // TODO SLG
-                group_order: message::GroupOrder::Descending, // TODO: resolve correct value from publisher / subscriber prefs
-                content_exists: largest_location.is_some(),
-                largest_location,
+                track_alias,
+                track_extensions: Default::default(),
                 params: Default::default(),
             })
             .await;
@@ -120,8 +189,12 @@ impl Subscribed {
         match track.mode().await? {
             // TODO cancel track/datagrams on closed
             TrackReaderMode::Stream(_stream) => panic!("deprecated"),
-            TrackReaderMode::Subgroups(subgroups) => self.serve_subgroups(subgroups).await,
-            TrackReaderMode::Datagrams(datagrams) => self.serve_datagrams(datagrams).await,
+            TrackReaderMode::Subgroups(subgroups) => {
+                self.serve_subgroups(subgroups, track_alias, filter, bytes_callback).await
+            }
+            TrackReaderMode::Datagrams(datagrams) => {
+                self.serve_datagrams(datagrams, track_alias).await
+            }
         }
     }
 
@@ -178,9 +251,10 @@ impl Drop for Subscribed {
                 reason: ReasonPhrase(err.to_string()),
             });
         } else {
-            self.publisher.send_message(message::SubscribeError {
+            self.publisher.send_message(message::RequestError {
                 id: self.info.id,
                 error_code: err.code(),
+                retry_interval: 0,
                 reason_phrase: ReasonPhrase(err.to_string()),
             });
         };
@@ -191,32 +265,63 @@ impl Subscribed {
     async fn serve_subgroups(
         &mut self,
         mut subgroups: serve::SubgroupsReader,
+        track_alias: u64,
+        filter: Option<Arc<GroupFilterFn>>,
+        bytes_callback: Option<Arc<BytesSentCallback>>,
     ) -> Result<(), SessionError> {
-        let mut tasks = FuturesUnordered::new();
+        let mut tasks: FuturesUnordered<std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>>> = FuturesUnordered::new();
         let mut done: Option<Result<(), ServeError>> = None;
 
         loop {
             tokio::select! {
                 res = subgroups.next(), if done.is_none() => match res {
                     Ok(Some(subgroup)) => {
+                        // Apply group filter if present (for DTS)
+                        // Filter is called with (group_id, 0) to check if this group should be forwarded
+                        if let Some(ref f) = filter {
+                            if !f(subgroup.group_id, 0) {
+                                log::debug!(
+                                    "[SUBSCRIBED] serve_subgroups: skipping group {} (filtered by DTS)",
+                                    subgroup.group_id
+                                );
+                                // Spawn a background task to drain the filtered group's objects.
+                                // This is necessary because the SubgroupReader shares state with
+                                // SubgroupWriter - if we drop the reader, the writer's lock_mut()
+                                // will fail with Cancel, breaking the upstream subscription.
+                                // Using tokio::spawn to avoid blocking the main serve loop.
+                                tokio::spawn(async move {
+                                    Self::drain_subgroup(subgroup).await;
+                                });
+                                continue;
+                            }
+                        }
+
+                        // Use preserved header type if available, otherwise default to SubgroupIdExt
+                        let header_type = subgroup.info.header_type.unwrap_or(data::StreamHeaderType::SubgroupIdExt);
+                        let subgroup_id = if header_type.has_subgroup_id() {
+                            Some(subgroup.subgroup_id)
+                        } else {
+                            None
+                        };
                         let header = data::SubgroupHeader {
-                            header_type: data::StreamHeaderType::SubgroupIdExt,  // SubGroupId = Yes, Extensions = Yes, ContainsEndOfGroup = No
-                            track_alias: self.info.id, // use subscription id as track_alias
+                            header_type,
+                            track_alias,
                             group_id: subgroup.group_id,
-                            subgroup_id: Some(subgroup.subgroup_id),
-                            publisher_priority: subgroup.priority,
+                            subgroup_id,
+                            publisher_priority: Some(subgroup.priority),
                         };
 
                         let publisher = self.publisher.clone();
                         let state = self.state.clone();
                         let info = subgroup.info.clone();
                         let mlog = self.mlog.clone();
+                        let bytes_cb = bytes_callback.clone();
 
-                        tasks.push(async move {
-                            if let Err(err) = Self::serve_subgroup(header, subgroup, publisher, state, mlog).await {
+                        tasks.push(Box::pin(async move {
+                            if let Err(err) = Self::serve_subgroup(header, subgroup, publisher, state, mlog, bytes_cb).await {
                                 log::warn!("failed to serve subgroup: {:?}, error: {}", info, err);
                             }
-                        });
+                        }));
                     },
                     Ok(None) => done = Some(Ok(())),
                     Err(err) => done = Some(Err(err)),
@@ -234,6 +339,7 @@ impl Subscribed {
         mut publisher: Publisher,
         state: State<SubscribedState>,
         mlog: Option<Arc<Mutex<mlog::MlogWriter>>>,
+        bytes_callback: Option<Arc<BytesSentCallback>>,
     ) -> Result<(), SessionError> {
         log::debug!(
             "[PUBLISHER] serve_subgroup: starting - group_id={}, subgroup_id={:?}, priority={}",
@@ -251,7 +357,7 @@ impl Subscribed {
         let mut writer = Writer::new(send_stream);
 
         log::debug!(
-            "[PUBLISHER] serve_subgroup: sending header - track_alias={}, group_id={}, subgroup_id={:?}, priority={}, header_type={:?}",
+            "[PUBLISHER] serve_subgroup: sending header - track_alias={}, group_id={}, subgroup_id={:?}, priority={:?}, header_type={:?}",
             header.track_alias,
             header.group_id,
             header.subgroup_id,
@@ -271,47 +377,78 @@ impl Subscribed {
             }
         }
 
+        let has_extension_headers = header.header_type.has_extension_headers();
         let mut object_count = 0;
         while let Some(mut subgroup_object_reader) = subgroup_reader.next().await? {
-            let subgroup_object = data::SubgroupObjectExt {
-                object_id_delta: 0, // before delta logic, used to be subgroup_object_reader.object_id,
-                extension_headers: subgroup_object_reader.extension_headers.clone(), // Pass through extension headers
-                payload_length: subgroup_object_reader.size,
-                status: if subgroup_object_reader.size == 0 {
-                    // Only set status if payload length is zero
-                    Some(subgroup_object_reader.status)
-                } else {
-                    None
-                },
-            };
+            if state.lock().is_closed() {
+                log::debug!(
+                    "[PUBLISHER] serve_subgroup: subscription cancelled, stopping (group_id={}, subgroup_id={:?}, {} objects sent)",
+                    subgroup_reader.group_id,
+                    subgroup_reader.subgroup_id,
+                    object_count
+                );
+                return Ok(());
+            }
 
-            log::debug!(
-                "[PUBLISHER] serve_subgroup: sending object #{} - object_id={}, object_id_delta={}, payload_length={}, status={:?}, extension_headers={:?}",
-                object_count + 1,
-                subgroup_object_reader.object_id,
-                subgroup_object.object_id_delta,
-                subgroup_object.payload_length,
-                subgroup_object.status,
-                subgroup_object.extension_headers
-            );
+            // Encode object based on header type - must match what receiver expects
+            if has_extension_headers {
+                let subgroup_object = data::SubgroupObjectExt {
+                    object_id_delta: 0,
+                    extension_headers: subgroup_object_reader.extension_headers.clone(),
+                    payload_length: subgroup_object_reader.size,
+                    status: if subgroup_object_reader.size == 0 {
+                        Some(subgroup_object_reader.status)
+                    } else {
+                        None
+                    },
+                };
 
-            writer.encode(&subgroup_object).await?;
+                log::debug!(
+                    "[PUBLISHER] serve_subgroup: sending object #{} (ext) - object_id={}, payload_length={}, status={:?}, extension_headers={:?}",
+                    object_count + 1,
+                    subgroup_object_reader.object_id,
+                    subgroup_object.payload_length,
+                    subgroup_object.status,
+                    subgroup_object.extension_headers
+                );
 
-            // Log subgroup object created/sent
-            if let Some(ref mlog) = mlog {
-                if let Ok(mut mlog_guard) = mlog.lock() {
-                    let time = mlog_guard.elapsed_ms();
-                    let stream_id = 0; // TODO: Placeholder, need actual QUIC stream ID
-                    let event = mlog::subgroup_object_ext_created(
-                        time,
-                        stream_id,
-                        subgroup_reader.group_id,
-                        subgroup_reader.subgroup_id,
-                        subgroup_object_reader.object_id,
-                        &subgroup_object,
-                    );
-                    let _ = mlog_guard.add_event(event);
+                writer.encode(&subgroup_object).await?;
+
+                if let Some(ref mlog) = mlog {
+                    if let Ok(mut mlog_guard) = mlog.lock() {
+                        let time = mlog_guard.elapsed_ms();
+                        let stream_id = 0;
+                        let event = mlog::subgroup_object_ext_created(
+                            time,
+                            stream_id,
+                            subgroup_reader.group_id,
+                            subgroup_reader.subgroup_id,
+                            subgroup_object_reader.object_id,
+                            &subgroup_object,
+                        );
+                        let _ = mlog_guard.add_event(event);
+                    }
                 }
+            } else {
+                let subgroup_object = data::SubgroupObject {
+                    object_id_delta: 0,
+                    payload_length: subgroup_object_reader.size,
+                    status: if subgroup_object_reader.size == 0 {
+                        Some(subgroup_object_reader.status)
+                    } else {
+                        None
+                    },
+                };
+
+                log::debug!(
+                    "[PUBLISHER] serve_subgroup: sending object #{} - object_id={}, payload_length={}, status={:?}",
+                    object_count + 1,
+                    subgroup_object_reader.object_id,
+                    subgroup_object.payload_length,
+                    subgroup_object.status
+                );
+
+                writer.encode(&subgroup_object).await?;
             }
 
             state
@@ -325,6 +462,13 @@ impl Subscribed {
             let mut chunks_sent = 0;
             let mut bytes_sent = 0;
             while let Some(chunk) = subgroup_object_reader.read().await? {
+                if state.lock().is_closed() {
+                    log::debug!(
+                        "[PUBLISHER] serve_subgroup: subscription cancelled during payload transfer"
+                    );
+                    return Ok(());
+                }
+
                 log::trace!(
                     "[PUBLISHER] serve_subgroup: sending payload chunk #{} for object #{} ({} bytes)",
                     chunks_sent + 1,
@@ -342,6 +486,12 @@ impl Subscribed {
                 chunks_sent,
                 bytes_sent
             );
+
+            // Report bytes sent for bandwidth estimation
+            if let Some(ref cb) = bytes_callback {
+                cb(bytes_sent as u64);
+            }
+
             object_count += 1;
         }
 
@@ -355,15 +505,44 @@ impl Subscribed {
         Ok(())
     }
 
+    /// Drain a filtered subgroup by consuming all its objects without forwarding.
+    /// This keeps the SubgroupReader alive so the writer side doesn't fail.
+    async fn drain_subgroup(mut subgroup_reader: serve::SubgroupReader) {
+        let group_id = subgroup_reader.group_id;
+        let mut object_count = 0;
+
+        while let Ok(Some(mut object)) = subgroup_reader.next().await {
+            // Read and discard all data from the object
+            while let Ok(Some(_chunk)) = object.read().await {
+                // Discard the chunk
+            }
+            object_count += 1;
+        }
+
+        log::debug!(
+            "[SUBSCRIBED] drain_subgroup: drained group {} ({} objects discarded)",
+            group_id,
+            object_count
+        );
+    }
+
     async fn serve_datagrams(
         &mut self,
         mut datagrams: serve::DatagramsReader,
+        track_alias: u64,
     ) -> Result<(), SessionError> {
         log::debug!("[PUBLISHER] serve_datagrams: starting");
 
         let mut datagram_count = 0;
         while let Some(datagram) = datagrams.read().await? {
-            // Determine datagram type based on extension headers presence
+            if self.state.lock().is_closed() {
+                log::debug!(
+                    "[PUBLISHER] serve_datagrams: subscription cancelled, stopping ({} datagrams sent)",
+                    datagram_count
+                );
+                return Ok(());
+            }
+
             let has_extension_headers = !datagram.extension_headers.is_empty();
             let datagram_type = if has_extension_headers {
                 data::DatagramType::ObjectIdPayloadExt
@@ -373,10 +552,10 @@ impl Subscribed {
 
             let encoded_datagram = data::Datagram {
                 datagram_type,
-                track_alias: self.info.id, // use subscription id as track_alias
+                track_alias,
                 group_id: datagram.group_id,
                 object_id: Some(datagram.object_id),
-                publisher_priority: datagram.priority,
+                publisher_priority: Some(datagram.priority),
                 extension_headers: if has_extension_headers {
                     Some(datagram.extension_headers.clone())
                 } else {
@@ -395,7 +574,7 @@ impl Subscribed {
             encoded_datagram.encode(&mut buffer)?;
 
             log::debug!(
-                "[PUBLISHER] serve_datagrams: sending datagram #{} - track_alias={}, group_id={}, object_id={}, priority={}, payload_len={}, extension_headers={:?}, total_encoded_len={}",
+                "[PUBLISHER] serve_datagrams: sending datagram #{} - track_alias={}, group_id={}, object_id={}, priority={:?}, payload_len={}, extension_headers={:?}, total_encoded_len={}",
                 datagram_count + 1,
                 encoded_datagram.track_alias,
                 encoded_datagram.group_id,

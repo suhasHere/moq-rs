@@ -43,15 +43,46 @@ impl fmt::Display for AddressFamily {
     }
 }
 
+/// Congestion control algorithm selection
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, clap::ValueEnum)]
+pub enum CongestionControl {
+    /// BBR - Bottleneck Bandwidth and Round-trip propagation time
+    /// Good for high bandwidth, maintains high cwnd even with loss
+    #[default]
+    Bbr,
+    /// CUBIC - Loss-based, aggressive window growth
+    Cubic,
+    /// NewReno - Conservative, halves cwnd on loss
+    /// Better for DTS testing as it responds more to congestion
+    NewReno,
+}
+
 /// Build a TransportConfig with our standard settings
 ///
 /// This is used both for the base endpoint config and when creating
 /// per-connection configs with qlog enabled.
 fn build_transport_config() -> quinn::TransportConfig {
+    build_transport_config_with_cc(CongestionControl::default())
+}
+
+/// Build a TransportConfig with specified congestion control algorithm
+fn build_transport_config_with_cc(cc: CongestionControl) -> quinn::TransportConfig {
     let mut transport = quinn::TransportConfig::default();
     transport.max_idle_timeout(Some(time::Duration::from_secs(10).try_into().unwrap()));
     transport.keep_alive_interval(Some(time::Duration::from_secs(4))); // TODO make this smarter
-    transport.congestion_controller_factory(Arc::new(quinn::congestion::BbrConfig::default()));
+
+    match cc {
+        CongestionControl::Bbr => {
+            transport.congestion_controller_factory(Arc::new(quinn::congestion::BbrConfig::default()));
+        }
+        CongestionControl::Cubic => {
+            transport.congestion_controller_factory(Arc::new(quinn::congestion::CubicConfig::default()));
+        }
+        CongestionControl::NewReno => {
+            transport.congestion_controller_factory(Arc::new(quinn::congestion::NewRenoConfig::default()));
+        }
+    }
+
     transport.mtu_discovery_config(None); // Disable MTU discovery
     transport
 }
@@ -66,6 +97,11 @@ pub struct Args {
     #[arg(long)]
     pub qlog_dir: Option<PathBuf>,
 
+    /// Congestion control algorithm (bbr, cubic, newreno)
+    /// NewReno is more responsive to loss, better for DTS testing
+    #[arg(long, default_value = "bbr")]
+    pub cc: CongestionControl,
+
     #[command(flatten)]
     pub tls: tls::Args,
 }
@@ -75,6 +111,7 @@ impl Default for Args {
         Self {
             bind: "[::]:0".parse().unwrap(),
             qlog_dir: None,
+            cc: CongestionControl::default(),
             tls: Default::default(),
         }
     }
@@ -83,7 +120,7 @@ impl Default for Args {
 impl Args {
     pub fn load(&self) -> anyhow::Result<Config> {
         let tls = self.tls.load()?;
-        Ok(Config::new(self.bind, self.qlog_dir.clone(), tls))
+        Ok(Config::new(self.bind, self.qlog_dir.clone(), tls).with_cc(self.cc))
     }
 }
 
@@ -93,6 +130,7 @@ pub struct Config {
     pub qlog_dir: Option<PathBuf>,
     pub tls: tls::Config,
     pub tags: HashSet<String>,
+    pub cc: CongestionControl,
 }
 
 impl Config {
@@ -105,6 +143,7 @@ impl Config {
             qlog_dir,
             tls,
             tags: HashSet::new(),
+            cc: CongestionControl::default(),
         }
     }
 
@@ -119,11 +158,17 @@ impl Config {
             qlog_dir,
             tls,
             tags: HashSet::new(),
+            cc: CongestionControl::default(),
         }
     }
 
     pub fn with_tag(mut self, tag: String) -> Self {
         self.tags.insert(tag);
+        self
+    }
+
+    pub fn with_cc(mut self, cc: CongestionControl) -> Self {
+        self.cc = cc;
         self
     }
 }
@@ -153,14 +198,16 @@ impl Endpoint {
             log::info!("qlog output enabled: {}", qlog_dir.display());
         }
 
-        // Build transport config with our standard settings
-        let transport = Arc::new(build_transport_config());
+        log::info!("using congestion control: {:?}", config.cc);
+
+        // Build transport config with specified CC algorithm
+        let transport = Arc::new(build_transport_config_with_cc(config.cc));
 
         let mut server_config = None;
 
         if let Some(mut config) = config.tls.server {
             config.alpn_protocols = vec![
-                web_transport_quinn::ALPN.to_vec(),
+                web_transport_quinn::ALPN.as_bytes().to_vec(),
                 moq_transport::setup::ALPN.to_vec(),
             ];
             config.key_log = Arc::new(rustls::KeyLogFile::new());
@@ -186,6 +233,7 @@ impl Endpoint {
             accept: Default::default(),
             qlog_dir: config.qlog_dir.map(Arc::new),
             base_server_config: Arc::new(base_server_config),
+            cc: config.cc,
         });
 
         let client = Client {
@@ -202,22 +250,31 @@ impl Endpoint {
     }
 }
 
+/// Result of accepting a connection, includes the quinn::Connection for stats access
+pub struct AcceptedConnection {
+    pub session: web_transport::Session,
+    pub connection_id: String,
+    pub quinn_connection: quinn::Connection,
+}
+
 pub struct Server {
     quic: quinn::Endpoint,
-    accept: FuturesUnordered<BoxFuture<'static, anyhow::Result<(web_transport::Session, String)>>>,
+    accept: FuturesUnordered<BoxFuture<'static, anyhow::Result<AcceptedConnection>>>,
     qlog_dir: Option<Arc<PathBuf>>,
     base_server_config: Arc<quinn::ServerConfig>,
+    cc: CongestionControl,
 }
 
 impl Server {
-    pub async fn accept(&mut self) -> Option<(web_transport::Session, String)> {
+    pub async fn accept(&mut self) -> Option<AcceptedConnection> {
         loop {
             tokio::select! {
                 res = self.quic.accept() => {
                     let conn = res?;
                     let qlog_dir = self.qlog_dir.clone();
                     let base_server_config = self.base_server_config.clone();
-                    self.accept.push(Self::accept_session(conn, qlog_dir, base_server_config).boxed());
+                    let cc = self.cc;
+                    self.accept.push(Self::accept_session(conn, qlog_dir, base_server_config, cc).boxed());
                 },
                 res = self.accept.next(), if !self.accept.is_empty() => {
                     match res? {
@@ -232,11 +289,17 @@ impl Server {
         }
     }
 
+    /// Legacy accept that returns just the session and connection_id
+    pub async fn accept_session_only(&mut self) -> Option<(web_transport::Session, String)> {
+        self.accept().await.map(|ac| (ac.session, ac.connection_id))
+    }
+
     async fn accept_session(
         conn: quinn::Incoming,
         qlog_dir: Option<Arc<PathBuf>>,
         base_server_config: Arc<quinn::ServerConfig>,
-    ) -> anyhow::Result<(web_transport::Session, String)> {
+        cc: CongestionControl,
+    ) -> anyhow::Result<AcceptedConnection> {
         // Capture the original destination connection ID BEFORE accepting
         // This is the actual QUIC CID that can be used for qlog/mlog correlation
         let orig_dst_cid = conn.orig_dst_cid();
@@ -247,8 +310,8 @@ impl Server {
             // Create qlog file path using connection ID
             let qlog_path = qlog_dir.join(format!("{}_server.qlog", connection_id_hex));
 
-            // Create transport config with our standard settings plus qlog
-            let mut transport = build_transport_config();
+            // Create transport config with specified CC plus qlog
+            let mut transport = build_transport_config_with_cc(cc);
 
             let file = File::create(&qlog_path).context("failed to create qlog file")?;
             let writer = BufWriter::new(file);
@@ -305,25 +368,34 @@ impl Server {
             server_name,
         );
 
-        let session = match alpn.as_bytes() {
-            web_transport_quinn::ALPN => {
-                // Wait for the CONNECT request.
-                let request = web_transport_quinn::accept(conn)
-                    .await
-                    .context("failed to receive WebTransport request")?;
+        // Clone the connection for stats access (clone is cheap, just an Arc)
+        let quinn_connection = conn.clone();
 
-                // Accept the CONNECT request.
-                request
-                    .ok()
-                    .await
-                    .context("failed to respond to WebTransport request")?
-            }
-            // A bit of a hack to pretend like we're a WebTransport session
-            moq_transport::setup::ALPN => conn.into(),
-            _ => anyhow::bail!("unsupported ALPN: {}", alpn),
+        let alpn_bytes = alpn.as_bytes();
+        let session = if alpn_bytes == web_transport_quinn::ALPN.as_bytes() {
+            // Wait for the WebTransport CONNECT request (includes H3 SETTINGS exchange).
+            let request = web_transport_quinn::Request::accept(conn)
+                .await
+                .context("failed to receive WebTransport request")?;
+
+            // Accept the CONNECT request.
+            request
+                .ok()
+                .await
+                .context("failed to respond to WebTransport request")?
+        } else if alpn_bytes == moq_transport::setup::ALPN {
+            // Raw QUIC mode — create a session with no H3 framing.
+            let request = url::Url::parse("moqt://localhost").unwrap();
+            web_transport_quinn::Session::raw(conn, request, web_transport_quinn::proto::ConnectResponse::default())
+        } else {
+            anyhow::bail!("unsupported ALPN: {}", alpn)
         };
 
-        Ok((session.into(), connection_id_hex))
+        Ok(AcceptedConnection {
+            session: session.into(),
+            connection_id: connection_id_hex,
+            quinn_connection,
+        })
     }
 
     pub fn local_addr(&self) -> anyhow::Result<net::SocketAddr> {
@@ -373,7 +445,7 @@ impl Client {
 
         // TODO support connecting to both ALPNs at the same time
         config.alpn_protocols = vec![match url.scheme() {
-            "https" => web_transport_quinn::ALPN.to_vec(),
+            "https" => web_transport_quinn::ALPN.as_bytes().to_vec(),
             "moqt" => moq_transport::setup::ALPN.to_vec(),
             _ => anyhow::bail!("url scheme must be 'https' or 'moqt'"),
         }];
@@ -426,8 +498,15 @@ impl Client {
             .to_string();
 
         let session = match url.scheme() {
-            "https" => web_transport_quinn::connect_with(connection, url).await?,
-            "moqt" => connection.into(),
+            "https" => {
+                // Build a ConnectRequest with the MoQT version as the WebTransport subprotocol.
+                // Per draft-15+, version negotiation uses ALPN (raw QUIC) or
+                // wt-available-protocols (WebTransport) instead of CLIENT_SETUP versions.
+                let request = web_transport_quinn::proto::ConnectRequest::new(url.clone())
+                    .with_protocol(std::str::from_utf8(moq_transport::setup::ALPN).unwrap());
+                web_transport_quinn::Session::connect(connection, request).await?
+            }
+            "moqt" => web_transport_quinn::Session::raw(connection, url.clone(), web_transport_quinn::proto::ConnectResponse::default()),
             _ => unreachable!(),
         };
 

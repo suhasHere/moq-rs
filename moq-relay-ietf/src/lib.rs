@@ -29,21 +29,35 @@
 //! ```
 
 mod api;
+mod bandwidth;
+mod catalog_dts;
 mod consumer;
 mod coordinator;
+mod dts_service;
+mod dts_tracker;
 mod local;
 mod producer;
+mod quic_stats;
 mod relay;
 mod remote;
 mod session;
+mod subscriber_registry;
+mod top_n_tracker;
 mod web;
 
 pub use api::*;
+pub use bandwidth::*;
+pub use catalog_dts::*;
 pub use consumer::*;
 pub use coordinator::*;
+pub use dts_service::*;
+pub use dts_tracker::*;
 pub use local::*;
 pub use producer::*;
+pub use quic_stats::*;
 pub use relay::*;
 pub use remote::*;
 pub use session::*;
+pub use subscriber_registry::*;
+pub use top_n_tracker::*;
 pub use web::*;

@@ -23,6 +23,7 @@ path = "src/bin/moq-relay-ietf/main.rs"
 moq-transport = { path = "../moq-transport", version = "0.12" }
 moq-native-ietf = { path = "../moq-native-ietf", version = "0.7" }
 moq-api = { path = "../moq-api", version = "0.2" }
+moq-catalog = { path = "../moq-catalog", version = "0.2" }
 web-transport = { workspace = true }
 
 # QUIC

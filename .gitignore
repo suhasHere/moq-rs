@@ -6,3 +6,10 @@ result
 qlog/
 /mlog/
 .vscode/launch.json
+.idea/
+__pycache__/
+moq-topn-test/*.txt
+moq-topn-test/*.log
+moq-topn-test/*.html
+moq-topn-test/*.md
+moq-topn-test/*.svg

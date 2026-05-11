@@ -3,11 +3,14 @@ use std::{future::Future, net, path::PathBuf, pin::Pin, sync::Arc};
 use anyhow::Context;
 
 use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
-use moq_native_ietf::quic::{self, Endpoint};
+use moq_native_ietf::quic::{self, AcceptedConnection, CongestionControl, Endpoint};
 use url::Url;
 
 use crate::{
-    Consumer, Coordinator, Locals, Producer, Remotes, RemotesConsumer, RemotesProducer, Session,
+    Consumer, Coordinator, DtsServiceHandle, DtsService, Locals, Producer,
+    QuicStatsConsumer, QuicStatsReporter, QuicStatsSender,
+    Remotes, RemotesConsumer, RemotesProducer, Session,
+    SubscriberRegistry, TieBreakPolicy, quic_stats_channel,
 };
 
 // A type alias for boxed future
@@ -15,7 +18,7 @@ type ServerFuture = Pin<
     Box<
         dyn Future<
             Output = (
-                anyhow::Result<(web_transport::Session, String)>,
+                anyhow::Result<AcceptedConnection>,
                 quic::Server,
             ),
         >,
@@ -48,6 +51,19 @@ pub struct RelayConfig {
 
     /// The coordinator for namespace/track registration and discovery.
     pub coordinator: Arc<dyn Coordinator>,
+
+    /// Enable TopN event logging for visualization
+    /// Logs JSON events to stdout that can be used to generate timeline SVGs
+    pub topn_log: bool,
+
+    /// Tie-break policy for top-N filtering
+    pub tie_break_policy: TieBreakPolicy,
+
+    /// Enable DTS (Dynamic Track Switching) for ABR video
+    pub dts_enabled: bool,
+
+    /// Congestion control algorithm
+    pub cc: CongestionControl,
 }
 
 /// MoQ Relay server.
@@ -58,6 +74,9 @@ pub struct Relay {
     locals: Locals,
     remotes: Option<(RemotesProducer, RemotesConsumer)>,
     coordinator: Arc<dyn Coordinator>,
+    subscriber_registry: SubscriberRegistry,
+    dts_service: Option<DtsServiceHandle>,
+    quic_stats_sender: Option<QuicStatsSender>,
 }
 
 impl Relay {
@@ -71,7 +90,7 @@ impl Relay {
                 bind,
                 config.qlog_dir.clone(),
                 config.tls.clone(),
-            ))?;
+            ).with_cc(config.cc))?;
             vec![endpoint]
         } else {
             config.endpoints
@@ -107,6 +126,30 @@ impl Relay {
         }
         .produce();
 
+        // Create subscriber registry for SUBSCRIBE_NAMESPACE tracking
+        let subscriber_registry = if config.topn_log {
+            log::info!("TopN event logging enabled - JSON events will be written to stdout");
+            log::info!("TopN tie-break policy: {:?}", config.tie_break_policy);
+            SubscriberRegistry::with_config(true, config.tie_break_policy)
+        } else {
+            SubscriberRegistry::with_config(false, config.tie_break_policy)
+        };
+
+        // Create DTS service and QUIC stats channel if enabled
+        let (dts_service, quic_stats_sender) = if config.dts_enabled {
+            log::info!("DTS (Dynamic Track Switching) enabled for ABR video");
+            let dts = Arc::new(DtsService::new());
+            let (sender, receiver) = quic_stats_channel();
+
+            // Spawn the QUIC stats consumer task
+            let consumer = QuicStatsConsumer::new(receiver, dts.clone());
+            tokio::spawn(consumer.run());
+
+            (Some(dts), Some(sender))
+        } else {
+            (None, None)
+        };
+
         Ok(Self {
             quic_endpoints: endpoints,
             announce_url: config.announce,
@@ -114,6 +157,9 @@ impl Relay {
             locals,
             remotes: Some(remotes),
             coordinator: config.coordinator,
+            subscriber_registry,
+            dts_service,
+            quic_stats_sender,
         })
     }
 
@@ -188,7 +234,7 @@ impl Relay {
             // Create a future, box it, and push it to the collection.
             accepts.push(
                 async move {
-                    let conn = server.accept().await.context("accept failed");
+                    let conn = server.accept().await.ok_or_else(|| anyhow::anyhow!("accept failed"));
                     (conn, server)
                 }
                 .boxed(),
@@ -203,13 +249,16 @@ impl Relay {
                     // First, immediately queue up the next accept() call for this server.
                     accepts.push(
                         async move {
-                            let conn = server.accept().await.context("accept failed");
+                            let conn = server.accept().await.ok_or_else(|| anyhow::anyhow!("accept failed"));
                             (conn, server)
                         }
                         .boxed(),
                     );
 
-                    let (conn, connection_id) = conn_result.context("failed to accept QUIC connection")?;
+                    let accepted = conn_result.context("failed to accept QUIC connection")?;
+                    let conn = accepted.session;
+                    let connection_id = accepted.connection_id;
+                    let quinn_connection = accepted.quinn_connection;
 
                     // Construct mlog path from connection ID if mlog directory is configured
                     let mlog_path = self.mlog_dir.as_ref()
@@ -219,6 +268,9 @@ impl Relay {
                     let remotes = remotes.clone();
                     let forward = forward_producer.clone();
                     let coordinator = self.coordinator.clone();
+                    let subscriber_registry = self.subscriber_registry.clone();
+                    let dts_service = self.dts_service.clone();
+                    let quic_stats_sender = self.quic_stats_sender.clone();
 
                     // Spawn a new task to handle the connection
                     tasks.push(async move {
@@ -232,15 +284,80 @@ impl Relay {
                         };
 
                         // Create our MoQ relay session
+                        // Use connection_id hash as session_id for self-exclusion in pub/sub
+                        use std::hash::{Hash, Hasher};
+                        let session_id = {
+                            let mut hasher = std::collections::hash_map::DefaultHasher::new();
+                            connection_id.hash(&mut hasher);
+                            hasher.finish()
+                        };
+
+                        // Register session with DTS service if enabled
+                        if let Some(ref dts) = dts_service {
+                            dts.register_subscriber(session_id);
+                        }
+
+                        // Spawn periodic QUIC stats reporter for this session if DTS is enabled
+                        let stats_task = if let Some(ref sender) = quic_stats_sender {
+                            let reporter = QuicStatsReporter::new(sender.clone(), session_id);
+                            let quinn_conn = quinn_connection.clone();
+                            log::info!("DTS: starting QUIC stats reporter for session {}", session_id);
+                            Some(tokio::spawn(async move {
+                                let mut interval = tokio::time::interval(std::time::Duration::from_millis(500));
+                                loop {
+                                    interval.tick().await;
+                                    let stats = quinn_conn.stats();
+                                    let path = stats.path;
+                                    log::debug!(
+                                        "DTS: QUIC stats for session: rtt={:?}, cwnd={}",
+                                        path.rtt, path.cwnd
+                                    );
+                                    reporter.report(
+                                        path.rtt,
+                                        path.cwnd,
+                                        path.congestion_events,
+                                        path.lost_packets,
+                                        stats.udp_tx.bytes,
+                                    );
+                                }
+                            }))
+                        } else {
+                            None
+                        };
+
                         let moq_session = session;
                         let session = Session {
                             session: moq_session,
-                            producer: publisher.map(|publisher| Producer::new(publisher, locals.clone(), remotes)),
-                            consumer: subscriber.map(|subscriber| Consumer::new(subscriber, locals, coordinator, forward)),
+                            producer: publisher.map(|publisher| {
+                                Producer::with_registry_and_dts(
+                                    publisher,
+                                    locals.clone(),
+                                    remotes,
+                                    subscriber_registry.clone(),
+                                    session_id,
+                                    dts_service.clone(),
+                                )
+                            }),
+                            consumer: subscriber.map(|subscriber| {
+                                Consumer::with_registry_and_dts(
+                                    subscriber,
+                                    locals,
+                                    coordinator,
+                                    forward,
+                                    subscriber_registry,
+                                    session_id,
+                                    dts_service.clone(),
+                                )
+                            }),
                         };
 
                         if let Err(err) = session.run().await {
                             log::warn!("failed to run MoQ session: {}", err);
+                        }
+
+                        // Stop the stats reporter task when session ends
+                        if let Some(task) = stats_task {
+                            task.abort();
                         }
 
                         Ok(())

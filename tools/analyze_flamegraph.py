@@ -224,13 +224,29 @@ def main():
     p("=" * 80)
     topn_incl = inclusive.get("TopN Compute", 0) / total_weight * 100 if total_weight else 0
     topn_filt_incl = inclusive.get("TopN Filter", 0) / total_weight * 100 if total_weight else 0
+    quic_incl = inclusive.get("QUIC Transport", 0) / total_weight * 100 if total_weight else 0
     quic_excl = exclusive.get("QUIC Transport", 0) / total_weight * 100 if total_weight else 0
+    topn_excl = exclusive.get("TopN Compute", 0) / total_weight * 100 if total_weight else 0
     moq_incl = inclusive.get("MOQ Protocol", 0) / total_weight * 100 if total_weight else 0
     p(f"  Top-N compute (inclusive): {topn_incl:.1f}% - ranking decisions & value tracking")
     p(f"  Top-N filter (inclusive):  {topn_filt_incl:.1f}% - property check + filter interception")
     p(f"  Top-N self time:           {topn_pct:.1f}% - actual CPU in top-N code (no callees)")
     p(f"  QUIC transport (self):     {quic_excl:.1f}% - packet I/O & stream management")
     p(f"  MOQ protocol (inclusive):  {moq_incl:.1f}% - encode/decode + session management")
+    p()
+    p("-" * 80)
+    p("TOP-N vs QUIC RELATIVE COST")
+    p("-" * 80)
+    if quic_excl > 0:
+        self_ratio = topn_pct / quic_excl
+        p(f"  Self vs self:           Top-N {topn_pct:.1f}% vs QUIC {quic_excl:.1f}% → Top-N is 1/{int(1/self_ratio)} of QUIC")
+    else:
+        p(f"  Self vs self:           Top-N {topn_pct:.1f}% vs QUIC {quic_excl:.1f}%")
+    if quic_incl > 0:
+        incl_ratio = topn_incl / quic_incl
+        p(f"  Inclusive vs inclusive:  Top-N {topn_incl:.1f}% vs QUIC {quic_incl:.1f}% → Top-N is 1/{int(1/incl_ratio)} of QUIC")
+    else:
+        p(f"  Inclusive vs inclusive:  Top-N {topn_incl:.1f}% vs QUIC {quic_incl:.1f}%")
     p()
     p(f"  Interpretation: Top-N ranking adds ~{topn_pct:.1f}% CPU overhead (self time).")
     p("  The vast majority of CPU goes to QUIC transport and fan-out to subscribers.")

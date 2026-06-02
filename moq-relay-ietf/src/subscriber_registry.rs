@@ -6,6 +6,19 @@ use tokio::sync::broadcast;
 
 use crate::top_n_tracker::{TieBreakPolicy, TopNTracker, TopNTrackerConfig};
 
+/// Key for indexing subscriptions by their namespace prefix and property type
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+struct FilterGroupKey {
+    prefix: TrackNamespace,
+    property_type: u64,
+}
+
+/// Group of subscriber IDs that share the same (prefix, property_type)
+/// Enables O(group_size) iteration instead of O(all_subscriptions)
+struct FilterGroup {
+    subscription_ids: Vec<u64>,
+}
+
 /// TRACK_FILTER configuration for a subscription
 #[derive(Clone, Debug, Default)]
 pub struct TrackFilter {
@@ -68,6 +81,12 @@ struct SubscriberRegistryInner {
     /// Tracks which (subscription_id, namespace, track_name) have been sent PUBLISH
     /// Used to avoid sending duplicate PUBLISH when track re-enters top-N
     published_tracks: HashSet<(u64, TrackNamespace, String)>,
+    /// Index: session_id -> subscription_id (for O(1) lookup by session)
+    session_to_subscription: HashMap<u64, u64>,
+    /// Index: subscription_id -> set of published track keys (for O(1) cleanup on unregister)
+    subscription_published: HashMap<u64, Vec<(TrackNamespace, String)>>,
+    /// Groups of filtered subscriptions by (prefix, property_type)
+    filter_groups: HashMap<FilterGroupKey, FilterGroup>,
 }
 
 impl SubscriberRegistry {
@@ -90,6 +109,9 @@ impl SubscriberRegistry {
                 topn_event_logging,
                 tie_break_policy,
                 published_tracks: HashSet::new(),
+                session_to_subscription: HashMap::new(),
+                subscription_published: HashMap::new(),
+                filter_groups: HashMap::new(),
             })),
         }
     }
@@ -164,6 +186,20 @@ impl SubscriberRegistry {
                 tracker.update_max_n(filter.max_selected);
             }
 
+            // Add to filter group index
+            let group_key = FilterGroupKey {
+                prefix: prefix.clone(),
+                property_type: filter.property_type,
+            };
+            inner
+                .filter_groups
+                .entry(group_key)
+                .or_insert_with(|| FilterGroup {
+                    subscription_ids: Vec::new(),
+                })
+                .subscription_ids
+                .push(id);
+
             log::debug!(
                 "registered filtered subscription id={} session_id={} filter={:?}",
                 id,
@@ -181,6 +217,7 @@ impl SubscriberRegistry {
         };
 
         inner.subscriptions.insert(id, subscription);
+        inner.session_to_subscription.insert(session_id, id);
 
         log::debug!(
             "registered namespace subscription id={} session_id={}",
@@ -242,83 +279,94 @@ impl SubscriberRegistry {
     ) -> usize {
         let mut inner = self.inner.lock().unwrap();
         let mut notified = 0;
-        let mut keys_to_add = Vec::new();
+        let mut keys_to_add: Vec<(u64, TrackNamespace, String)> = Vec::new();
 
-        for ((prefix, pt), tracker) in inner.top_n_trackers.iter() {
-            if *pt != property_type {
-                continue;
-            }
+        // Find the matching tracker and update value
+        let matching_prefix: Option<TrackNamespace> = inner
+            .top_n_trackers
+            .iter()
+            .find(|((prefix, pt), _)| *pt == property_type && Self::prefix_matches(prefix, namespace))
+            .map(|((prefix, _), _)| prefix.clone());
 
-            if !Self::prefix_matches(prefix, namespace) {
-                continue;
-            }
+        let Some(prefix) = matching_prefix else {
+            return 0;
+        };
 
-            // Update the value in the tracker
+        let tracker_key = (prefix.clone(), property_type);
+        if let Some(tracker) = inner.top_n_trackers.get(&tracker_key) {
             tracker.update_value(namespace, track_name, new_value);
-            log::debug!(
-                "updated track {}/{} in TopN tracker to value {}",
-                namespace,
-                track_name,
-                new_value
-            );
+        }
 
-            // Now check if this track is in top-N for any subscriptions and notify if needed
-            let notification = PublishNotification {
-                namespace: namespace.clone(),
-                track_name: track_name.to_string(),
-                track_alias,
+        // Check membership change: did the top-N set actually change?
+        let snapshot = inner
+            .top_n_trackers
+            .get(&tracker_key)
+            .map(|t| t.load_snapshot());
+        let Some(snapshot) = snapshot else { return 0 };
+
+        // Use filter group index to only iterate relevant subscribers
+        let group_key = FilterGroupKey {
+            prefix: prefix.clone(),
+            property_type,
+        };
+
+        let sub_ids: Vec<u64> = inner
+            .filter_groups
+            .get(&group_key)
+            .map(|g| g.subscription_ids.clone())
+            .unwrap_or_default();
+
+        let notification = PublishNotification {
+            namespace: namespace.clone(),
+            track_name: track_name.to_string(),
+            track_alias,
+        };
+
+        for sub_id in sub_ids {
+            let Some(sub) = inner.subscriptions.get(&sub_id) else {
+                continue;
             };
 
-            for (id, sub) in inner.subscriptions.iter() {
-                // Skip if this subscription belongs to the same session that sent the update
-                if sub.session_id == origin_session_id {
+            if sub.session_id == origin_session_id {
+                continue;
+            }
+
+            let Some(ref filter) = sub.track_filter else {
+                continue;
+            };
+
+            // Use the pre-loaded snapshot for the check
+            let tracker = inner.top_n_trackers.get(&tracker_key).unwrap();
+            if tracker.is_in_top_n_with_snapshot(
+                namespace,
+                track_name,
+                sub.session_id,
+                filter.max_selected,
+                &snapshot,
+            ) {
+                let publish_key = (sub_id, namespace.clone(), track_name.to_string());
+                if inner.published_tracks.contains(&publish_key) {
                     continue;
                 }
 
-                // Check if prefix matches
-                if !Self::prefix_matches(&sub.prefix, namespace) {
-                    continue;
-                }
-
-                // Check if subscription has TRACK_FILTER for this property type
-                if let Some(ref filter) = sub.track_filter {
-                    if filter.property_type != property_type {
-                        continue;
-                    }
-
-                    // Check if track is now in top-N for this subscriber
-                    if tracker.is_in_top_n(namespace, track_name, sub.session_id, filter.max_selected) {
-                        // Check if we already sent PUBLISH for this (subscription, track) pair
-                        let publish_key = (*id, namespace.clone(), track_name.to_string());
-                        if inner.published_tracks.contains(&publish_key) {
-                            log::debug!(
-                                "skipping subscription id={} (PUBLISH already sent for {}/{})",
-                                id,
-                                namespace,
-                                track_name
-                            );
-                            continue;
-                        }
-
-                        // Send notification
-                        if let Err(e) = sub.publish_tx.send(notification.clone()) {
-                            log::warn!("failed to notify subscription id={} of value change: {}", id, e);
-                        } else {
-                            log::debug!(
-                                "notified subscription id={} that track {}/{} entered top-{} (value={})",
-                                id, namespace, track_name, filter.max_selected, new_value
-                            );
-                            notified += 1;
-                            keys_to_add.push(publish_key);
-                        }
-                    }
+                if sub.publish_tx.send(notification.clone()).is_ok() {
+                    notified += 1;
+                    keys_to_add.push(publish_key);
                 }
             }
         }
 
-        // Record sent PUBLISH notifications
+        // Record sent PUBLISH notifications with per-subscription index
         for key in keys_to_add {
+            let sub_id = key.0;
+            let ns = key.1.clone();
+            let track = key.2.clone();
             inner.published_tracks.insert(key);
+            inner
+                .subscription_published
+                .entry(sub_id)
+                .or_insert_with(Vec::new)
+                .push((ns, track));
         }
 
         notified
@@ -360,11 +408,21 @@ impl SubscriberRegistry {
             }
 
             if Self::prefix_matches(prefix, namespace) {
-                return tracker.is_in_top_n(namespace, track_name, session_id, max_n);
+                // N-covers-all fast path: if N >= total tracks, always in top-N
+                let snapshot = tracker.load_snapshot();
+                let non_self_count = snapshot
+                    .iter()
+                    .filter(|t| t.publisher_session_id != session_id)
+                    .count();
+                if max_n as usize >= non_self_count {
+                    return true;
+                }
+                return tracker.is_in_top_n_with_snapshot(
+                    namespace, track_name, session_id, max_n, &snapshot,
+                );
             }
         }
 
-        // No tracker found - track not registered, so not in top-N
         false
     }
 
@@ -373,11 +431,10 @@ impl SubscriberRegistry {
     pub fn get_track_filter_for_session(&self, session_id: u64) -> Option<TrackFilter> {
         let inner = self.inner.lock().unwrap();
 
-        for sub in inner.subscriptions.values() {
-            if sub.session_id == session_id {
-                if let Some(ref filter) = sub.track_filter {
-                    return Some(filter.clone());
-                }
+        // O(1) lookup via session index
+        if let Some(&sub_id) = inner.session_to_subscription.get(&session_id) {
+            if let Some(sub) = inner.subscriptions.get(&sub_id) {
+                return sub.track_filter.clone();
             }
         }
 
@@ -387,9 +444,28 @@ impl SubscriberRegistry {
     /// Unregister a subscription
     pub fn unregister(&self, id: u64) {
         let mut inner = self.inner.lock().unwrap();
-        if inner.subscriptions.remove(&id).is_some() {
-            // Clean up published_tracks entries for this subscription
-            inner.published_tracks.retain(|(sub_id, _, _)| *sub_id != id);
+        if let Some(sub) = inner.subscriptions.remove(&id) {
+            // Remove from session index
+            inner.session_to_subscription.remove(&sub.session_id);
+
+            // Remove from filter group
+            if let Some(ref filter) = sub.track_filter {
+                let group_key = FilterGroupKey {
+                    prefix: sub.prefix.clone(),
+                    property_type: filter.property_type,
+                };
+                if let Some(group) = inner.filter_groups.get_mut(&group_key) {
+                    group.subscription_ids.retain(|&sid| sid != id);
+                }
+            }
+
+            // Clean up published_tracks using the per-subscription index (O(tracks_for_this_sub))
+            if let Some(keys) = inner.subscription_published.remove(&id) {
+                for (ns, track) in keys {
+                    inner.published_tracks.remove(&(id, ns, track));
+                }
+            }
+
             log::debug!("unregistered namespace subscription id={}", id);
         }
     }
@@ -415,20 +491,21 @@ impl SubscriberRegistry {
         };
 
         let mut notified = 0;
+        let mut keys_to_add: Vec<(u64, TrackNamespace, String)> = Vec::new();
+
+        // Pre-load snapshots for trackers that match this namespace
+        let mut tracker_snapshots: HashMap<(TrackNamespace, u64), Arc<Vec<crate::top_n_tracker::TrackRank>>> = HashMap::new();
+        for ((prefix, pt), tracker) in inner.top_n_trackers.iter() {
+            if Self::prefix_matches(prefix, namespace) {
+                tracker_snapshots.insert((prefix.clone(), *pt), tracker.load_snapshot());
+            }
+        }
 
         for (id, sub) in inner.subscriptions.iter() {
-            // Skip if this subscription belongs to the same session that sent the PUBLISH
             if sub.session_id == origin_session_id {
-                log::debug!(
-                    "skipping subscription id={} (same session {})",
-                    id,
-                    origin_session_id
-                );
                 continue;
             }
 
-            // Check if the namespace matches the subscription prefix
-            // The subscription prefix should be a prefix of the namespace
             if !Self::prefix_matches(&sub.prefix, namespace) {
                 continue;
             }
@@ -437,31 +514,21 @@ impl SubscriberRegistry {
             if let Some(ref filter) = sub.track_filter {
                 let tracker_key = (sub.prefix.clone(), filter.property_type);
 
-                if let Some(tracker) = inner.top_n_trackers.get(&tracker_key) {
-                    // Check with self-exclusion: does this track appear in subscriber's top-N?
-                    if !tracker.is_in_top_n(
-                        namespace,
-                        track_name,
-                        sub.session_id,
-                        filter.max_selected,
-                    ) {
-                        log::debug!(
-                            "skipping subscription id={} (track not in top-{} for session {})",
-                            id,
+                if let Some(snapshot) = tracker_snapshots.get(&tracker_key) {
+                    if let Some(tracker) = inner.top_n_trackers.get(&tracker_key) {
+                        if !tracker.is_in_top_n_with_snapshot(
+                            namespace,
+                            track_name,
+                            sub.session_id,
                             filter.max_selected,
-                            sub.session_id
-                        );
+                            snapshot,
+                        ) {
+                            continue;
+                        }
+                    } else {
                         continue;
                     }
                 } else {
-                    // No tracker exists yet - track hasn't been registered with property value
-                    // Skip notification until track is registered
-                    log::debug!(
-                        "skipping subscription id={} (no TopN tracker for prefix={}, property_type={})",
-                        id,
-                        sub.prefix,
-                        filter.property_type
-                    );
                     continue;
                 }
             }
@@ -469,44 +536,26 @@ impl SubscriberRegistry {
             // Check if we already sent PUBLISH for this (subscription, track) pair
             let publish_key = (*id, namespace.clone(), track_name.to_string());
             if inner.published_tracks.contains(&publish_key) {
-                log::debug!(
-                    "skipping subscription id={} (PUBLISH already sent for {}/{})",
-                    id,
-                    namespace,
-                    track_name
-                );
                 continue;
             }
 
-            // Send notification
-            if let Err(e) = sub.publish_tx.send(notification.clone()) {
-                log::warn!("failed to notify subscription id={}: {}", id, e);
-            } else {
-                log::debug!(
-                    "notified subscription id={} of PUBLISH {}/{}",
-                    id,
-                    namespace,
-                    track_name
-                );
+            if sub.publish_tx.send(notification.clone()).is_ok() {
                 notified += 1;
+                keys_to_add.push(publish_key);
             }
         }
 
-        // Record sent PUBLISH notifications (done after iteration to avoid borrow issues)
-        // We need to collect the keys first since we can't mutate while iterating
-        let keys_to_add: Vec<_> = inner
-            .subscriptions
-            .iter()
-            .filter(|(id, sub)| {
-                sub.session_id != origin_session_id
-                    && Self::prefix_matches(&sub.prefix, namespace)
-                    && !inner.published_tracks.contains(&(**id, namespace.clone(), track_name.to_string()))
-            })
-            .map(|(id, _)| (*id, namespace.clone(), track_name.to_string()))
-            .collect();
-
+        // Record sent PUBLISH notifications with per-subscription index
         for key in keys_to_add {
+            let sub_id = key.0;
+            let ns = key.1.clone();
+            let track = key.2.clone();
             inner.published_tracks.insert(key);
+            inner
+                .subscription_published
+                .entry(sub_id)
+                .or_insert_with(Vec::new)
+                .push((ns, track));
         }
 
         notified
@@ -803,10 +852,9 @@ mod tests {
         assert_eq!(notified, 1);
         rx.try_recv().unwrap();
 
-        // notify_publish should also work for the updated track
+        // notify_publish for b should return 0 since PUBLISH was already sent via update_track_value
         let notified = registry.notify_publish(&ns("live"), "b", 2, 2);
-        assert_eq!(notified, 1);
-        rx.try_recv().unwrap();
+        assert_eq!(notified, 0);
 
         // a is no longer top-1
         let notified = registry.notify_publish(&ns("live"), "a", 1, 1);

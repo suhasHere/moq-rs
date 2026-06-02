@@ -48,13 +48,22 @@ pub struct Args {
     #[arg(short = 'n', long, default_value = "3")]
     pub top_n: u8,
 
+    /// Mixed top-N values (comma-separated, e.g. "1,10,25,45,65,77,85")
+    /// When set, subscribers cycle through these N values instead of using --top-n
+    #[arg(long)]
+    pub mixed_topn: Option<String>,
+
     /// Test duration in seconds
     #[arg(short, long, default_value = "30")]
     pub duration: u64,
 
-    /// Group interval in milliseconds
+    /// Group interval in milliseconds (2000 for viz, 33 for 30Hz perf tests)
     #[arg(long, default_value = "2000")]
     pub group_interval_ms: u64,
+
+    /// Connection batch size (connections established per batch during setup)
+    #[arg(long, default_value = "50")]
+    pub connection_batch_size: usize,
 
     /// Namespace for the test
     #[arg(long, default_value = "topn-test")]
@@ -108,6 +117,9 @@ async fn main() -> anyhow::Result<()> {
     info!("Publishers (X): {}", args.publishers);
     info!("Subscribers (Y): {}", args.subscribers);
     info!("Top-N filter: {}", args.top_n);
+    if let Some(ref mixed) = args.mixed_topn {
+        info!("Mixed top-N: {}", mixed);
+    }
     info!("Duration: {}s", args.duration);
     info!("Group interval: {}ms", args.group_interval_ms);
     info!("Tie-break policy: {}", args.tie_break);

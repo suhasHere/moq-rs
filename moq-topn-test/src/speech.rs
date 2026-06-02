@@ -1,17 +1,15 @@
 //! Speech activity state machine for simulating realistic publisher behavior.
 //!
-//! State transitions:
-//!   SILENT → SPEECH_START → SPEAKING → SPEECH_ENDED → SILENT
+//! Tick-based state machine matching moqx's parameters:
+//!   - p(start speaking) = 0.03 per tick when silent
+//!   - Speech start value = 2 (highest priority, 1 tick)
+//!   - Speaking value = 1 (90-300 ticks at 30Hz = 3-10s)
+//!   - Silent value = 0 (150-900 ticks at 30Hz = 5-30s)
 //!
-//! Property values:
-//!   SILENT:       0
-//!   SPEECH_START: 2  (first 300ms of speech - "burst" to indicate start)
-//!   SPEAKING:     1  (ongoing speech)
-//!   SPEECH_ENDED: 1  (keep sending 1 until next group starts)
-//!                 0  (send 0 on first group after speech ended)
+//! State transitions:
+//!   SILENT → SPEECH_START → SPEAKING → SILENT
 
 use rand::Rng;
-use std::time::{Duration, Instant};
 
 /// Speech activity states
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -19,115 +17,66 @@ pub enum SpeechState {
     Silent,
     SpeechStart,
     Speaking,
-    SpeechEnded,
 }
 
-/// Speech activity simulator
+/// Tick-based speech activity simulator matching moqx behavior.
 pub struct SpeechSimulator {
     state: SpeechState,
-    state_start: Instant,
-    speech_duration: Duration,
-    silence_duration: Duration,
-    speech_start_duration: Duration,
-    /// Whether we've sent the final 0 after speech ended
-    sent_final_zero: bool,
+    ticks_in_state: u64,
+    speaking_duration_ticks: u64,
 }
 
 impl SpeechSimulator {
     pub fn new() -> Self {
-        let mut rng = rand::thread_rng();
         Self {
             state: SpeechState::Silent,
-            state_start: Instant::now(),
-            speech_duration: Duration::from_secs(0),
-            silence_duration: Self::random_silence_duration(&mut rng),
-            speech_start_duration: Duration::from_millis(300),
-            sent_final_zero: true,
+            ticks_in_state: 0,
+            speaking_duration_ticks: 0,
         }
     }
 
-    /// Get the current property value to send
     pub fn current_value(&self) -> u8 {
         match self.state {
             SpeechState::Silent => 0,
             SpeechState::SpeechStart => 2,
             SpeechState::Speaking => 1,
-            SpeechState::SpeechEnded => {
-                if self.sent_final_zero {
-                    0
-                } else {
-                    1
-                }
-            }
         }
     }
 
-    /// Get the current state
     pub fn state(&self) -> SpeechState {
         self.state
     }
 
-    /// Called when a new group is about to be sent. Updates state and returns the value to send.
+    /// Called once per group interval. Updates state and returns the value to send.
     pub fn tick(&mut self) -> u8 {
         let mut rng = rand::thread_rng();
-        let elapsed = self.state_start.elapsed();
 
         match self.state {
             SpeechState::Silent => {
-                if elapsed >= self.silence_duration {
-                    // Start speaking
+                self.ticks_in_state += 1;
+                // p(start speaking) = 0.03 per tick
+                if rng.gen::<f64>() < 0.03 {
                     self.state = SpeechState::SpeechStart;
-                    self.state_start = Instant::now();
-                    self.speech_duration = Self::random_speech_duration(&mut rng);
-                    self.sent_final_zero = false;
+                    self.ticks_in_state = 0;
+                    // Speaking duration: 90-300 ticks (3-10s at 30Hz)
+                    self.speaking_duration_ticks = rng.gen_range(90..=300);
                 }
             }
             SpeechState::SpeechStart => {
-                if elapsed >= self.speech_start_duration {
-                    // Transition to normal speaking
-                    self.state = SpeechState::Speaking;
-                    // Don't reset state_start - we want total speech time
-                }
-                // Check if speech should end during start phase
-                if self.state_start.elapsed() >= self.speech_duration {
-                    self.state = SpeechState::SpeechEnded;
-                    self.state_start = Instant::now();
-                }
+                // Speech start lasts exactly 1 tick
+                self.state = SpeechState::Speaking;
+                self.ticks_in_state = 0;
             }
             SpeechState::Speaking => {
-                // Check total time since speech started (including start phase)
-                let total_speech_time = Instant::now().duration_since(
-                    self.state_start - self.speech_start_duration.min(elapsed)
-                );
-                if elapsed >= self.speech_duration.saturating_sub(self.speech_start_duration) {
-                    self.state = SpeechState::SpeechEnded;
-                    self.state_start = Instant::now();
-                }
-            }
-            SpeechState::SpeechEnded => {
-                if !self.sent_final_zero {
-                    // This tick sends the final 1, next tick will be 0
-                    self.sent_final_zero = true;
-                } else {
-                    // Transition back to silent
+                self.ticks_in_state += 1;
+                if self.ticks_in_state >= self.speaking_duration_ticks {
                     self.state = SpeechState::Silent;
-                    self.state_start = Instant::now();
-                    self.silence_duration = Self::random_silence_duration(&mut rng);
+                    self.ticks_in_state = 0;
                 }
             }
         }
 
         self.current_value()
-    }
-
-    /// Random speech duration: 2-8 seconds
-    fn random_speech_duration(rng: &mut impl Rng) -> Duration {
-        Duration::from_millis(rng.gen_range(2000..8000))
-    }
-
-    /// Random silence duration: 1-5 seconds
-    fn random_silence_duration(rng: &mut impl Rng) -> Duration {
-        Duration::from_millis(rng.gen_range(1000..5000))
     }
 }
 
@@ -160,5 +109,20 @@ mod tests {
         let mut sim = SpeechSimulator::new();
         sim.state = SpeechState::Speaking;
         assert_eq!(sim.current_value(), 1);
+    }
+
+    #[test]
+    fn test_state_transitions() {
+        let mut sim = SpeechSimulator::new();
+        // Run many ticks; should eventually enter speaking state
+        let mut saw_speech = false;
+        for _ in 0..10000 {
+            sim.tick();
+            if sim.state() == SpeechState::Speaking || sim.state() == SpeechState::SpeechStart {
+                saw_speech = true;
+                break;
+            }
+        }
+        assert!(saw_speech, "should eventually start speaking");
     }
 }

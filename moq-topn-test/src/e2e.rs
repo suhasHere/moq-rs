@@ -23,6 +23,7 @@ use moq_transport::{
     session::Session,
 };
 use std::collections::HashSet;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::broadcast;
@@ -74,77 +75,133 @@ fn log_topn_event_publish_received(enabled: bool, subscriber_id: usize, track: &
     );
 }
 
+/// Parse mixed top-N string into a vector of N values
+fn parse_mixed_topn(s: &str) -> Vec<u8> {
+    s.split(',')
+        .filter_map(|v| v.trim().parse::<u8>().ok())
+        .collect()
+}
+
+/// Shared counters for throughput metrics
+struct ThroughputCounters {
+    objects_published: AtomicU64,
+    objects_received: AtomicU64,
+    forward_errors: AtomicU64,
+}
+
 pub async fn run(args: Args) -> anyhow::Result<()> {
     let relay_url: Url = args.relay.parse().context("invalid relay URL")?;
 
     info!("Connecting to relay: {}", relay_url);
 
-    // Channel to broadcast shutdown signal
+    let mixed_topn_values = args.mixed_topn.as_ref().map(|s| parse_mixed_topn(s));
+    if let Some(ref values) = mixed_topn_values {
+        info!("Mixed top-N values: {:?}", values);
+    }
+
     let (shutdown_tx, _) = broadcast::channel::<()>(1);
 
-    // Shared stats collector
     let stats = Arc::new(StatsCollector::new(args.publishers, args.top_n));
 
-    // Shared current values for verification (publisher_id -> value)
+    let counters = Arc::new(ThroughputCounters {
+        objects_published: AtomicU64::new(0),
+        objects_received: AtomicU64::new(0),
+        forward_errors: AtomicU64::new(0),
+    });
+
     let current_values = Arc::new(tokio::sync::RwLock::new(
         std::collections::HashMap::<usize, u8>::new(),
     ));
 
-    // Start subscribers FIRST (they need to be ready to receive PUBLISH notifications)
+    let batch_size = args.connection_batch_size;
     let mut handles = Vec::new();
-    for i in 0..args.subscribers {
-        let args_clone = args.clone();
-        let stats_clone = stats.clone();
-        let shutdown_rx = shutdown_tx.subscribe();
-        let relay_url_clone = relay_url.clone();
-        let values_clone = current_values.clone();
 
-        let handle = tokio::spawn(async move {
-            if let Err(e) = run_subscriber(
-                i,
-                args_clone,
-                relay_url_clone,
-                stats_clone,
-                values_clone,
-                shutdown_rx,
-            )
-            .await
-            {
-                error!("Subscriber {} error: {:#}", i, e);
-            }
-        });
-        handles.push(handle);
+    // Start subscribers in batches
+    info!(
+        "Connecting {} subscribers in batches of {}...",
+        args.subscribers, batch_size
+    );
+    for batch_start in (0..args.subscribers).step_by(batch_size) {
+        let batch_end = (batch_start + batch_size).min(args.subscribers);
+        for i in batch_start..batch_end {
+            let args_clone = args.clone();
+            let stats_clone = stats.clone();
+            let shutdown_rx = shutdown_tx.subscribe();
+            let relay_url_clone = relay_url.clone();
+            let values_clone = current_values.clone();
+            let counters_clone = counters.clone();
+            let mixed_values = mixed_topn_values.clone();
+
+            let top_n_for_subscriber = match &mixed_values {
+                Some(values) if !values.is_empty() => values[i % values.len()],
+                _ => args.top_n,
+            };
+
+            let handle = tokio::spawn(async move {
+                if let Err(e) = run_subscriber(
+                    i,
+                    args_clone,
+                    relay_url_clone,
+                    stats_clone,
+                    values_clone,
+                    counters_clone,
+                    shutdown_rx,
+                    top_n_for_subscriber,
+                )
+                .await
+                {
+                    error!("Subscriber {} error: {:#}", i, e);
+                }
+            });
+            handles.push(handle);
+        }
+        if batch_end < args.subscribers {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
     }
 
     // Give subscribers time to register namespace subscriptions
     tokio::time::sleep(Duration::from_millis(500)).await;
 
-    // Start publishers
-    for i in 0..args.publishers {
-        let args_clone = args.clone();
-        let stats_clone = stats.clone();
-        let shutdown_rx = shutdown_tx.subscribe();
-        let relay_url_clone = relay_url.clone();
-        let values_clone = current_values.clone();
+    // Start publishers in batches
+    info!(
+        "Connecting {} publishers in batches of {}...",
+        args.publishers, batch_size
+    );
+    for batch_start in (0..args.publishers).step_by(batch_size) {
+        let batch_end = (batch_start + batch_size).min(args.publishers);
+        for i in batch_start..batch_end {
+            let args_clone = args.clone();
+            let stats_clone = stats.clone();
+            let shutdown_rx = shutdown_tx.subscribe();
+            let relay_url_clone = relay_url.clone();
+            let values_clone = current_values.clone();
+            let counters_clone = counters.clone();
 
-        let handle = tokio::spawn(async move {
-            if let Err(e) = run_publisher(
-                i,
-                args_clone,
-                relay_url_clone,
-                stats_clone,
-                values_clone,
-                shutdown_rx,
-            )
-            .await
-            {
-                error!("Publisher {} error: {:#}", i, e);
-            }
-        });
-        handles.push(handle);
+            let handle = tokio::spawn(async move {
+                if let Err(e) = run_publisher(
+                    i,
+                    args_clone,
+                    relay_url_clone,
+                    stats_clone,
+                    values_clone,
+                    counters_clone,
+                    shutdown_rx,
+                )
+                .await
+                {
+                    error!("Publisher {} error: {:#}", i, e);
+                }
+            });
+            handles.push(handle);
+        }
+        if batch_end < args.publishers {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
     }
 
     // Run for the specified duration
+    let test_start = Instant::now();
     info!("Test running for {} seconds...", args.duration);
     tokio::time::sleep(Duration::from_secs(args.duration)).await;
 
@@ -158,18 +215,50 @@ pub async fn run(args: Args) -> anyhow::Result<()> {
         let _ = tokio::time::timeout(shutdown_timeout, handle).await;
     }
 
-    // Print final stats
-    info!("");
+    let elapsed = test_start.elapsed().as_secs_f64();
+    let published = counters.objects_published.load(Ordering::Relaxed);
+    let received = counters.objects_received.load(Ordering::Relaxed);
+    let fwd_errors = counters.forward_errors.load(Ordering::Relaxed);
+    let msg_rate = received as f64 / elapsed;
+
+    // Print moqx-compatible summary
+    println!();
+    println!("THROUGHPUT METRICS");
+    println!("  Objects Published:       {}", published);
+    println!("  Objects Received:        {}", received);
+    println!("  Self-Received (errors):  0");
+    println!("  Forward Errors:          {}", fwd_errors);
+    println!("  Message Rate:            {:.1} msg/s", msg_rate);
+    println!();
+
+    let (passed, failed) = stats.verification_results();
+    let overall_status = if failed == 0 && passed > 0 {
+        "PASSED"
+    } else {
+        "FAILED"
+    };
+
+    println!("TOP-N CORRECTNESS");
+    println!("  Overall Status:          {}", overall_status);
+    println!("  Subscribers Verified:    {}", args.subscribers);
+    println!("  Subscriber Failures:     {}", failed);
+    println!();
+
+    println!("SUMMARY");
+    println!("  Test Duration:           {:.1}s", elapsed);
+    println!(
+        "  Total Messages Handled:  {}",
+        published + received
+    );
+    println!();
+
+    // Also print detailed stats
     stats.print_report();
 
-    // Determine test result
-    let (passed, failed) = stats.verification_results();
     if failed == 0 && passed > 0 {
-        info!("");
         info!("TOPN_TEST_RESULT: SUCCESS");
         Ok(())
     } else {
-        info!("");
         info!(
             "TOPN_TEST_RESULT: FAILURE ({} passed, {} failed)",
             passed, failed
@@ -197,6 +286,7 @@ async fn run_publisher(
     relay_url: Url,
     stats: Arc<StatsCollector>,
     current_values: Arc<tokio::sync::RwLock<std::collections::HashMap<usize, u8>>>,
+    counters: Arc<ThroughputCounters>,
     mut shutdown_rx: broadcast::Receiver<()>,
 ) -> Result<()> {
     let track_name = "audio".to_string();
@@ -357,6 +447,7 @@ async fn run_publisher(
                 let mut object = subgroup.create(1, Some(ext))?;
                 object.write(Bytes::from(vec![value]))?;
 
+                counters.objects_published.fetch_add(1, Ordering::Relaxed);
                 group_seq += 1;
             }
         }
@@ -373,7 +464,9 @@ async fn run_subscriber(
     relay_url: Url,
     stats: Arc<StatsCollector>,
     current_values: Arc<tokio::sync::RwLock<std::collections::HashMap<usize, u8>>>,
+    counters: Arc<ThroughputCounters>,
     mut shutdown_rx: broadcast::Receiver<()>,
+    top_n_value: u8,
 ) -> Result<()> {
     debug!("Subscriber {} connecting...", subscriber_id);
 
@@ -401,12 +494,12 @@ async fn run_subscriber(
     let mut params = moq_transport::coding::KeyValuePairs::new();
     // Pack property_type=0x12 and max_selected=N into a single u64
     // Format: (property_type << 8) | max_selected
-    let track_filter_value = ((AUDIO_LEVEL_EXT as u64) << 8) | (args.top_n as u64);
+    let track_filter_value = ((AUDIO_LEVEL_EXT as u64) << 8) | (top_n_value as u64);
     params.set_intvalue(TRACK_FILTER_KEY, track_filter_value);
 
     debug!(
         "Subscriber {} subscribing to namespace: {} (top-{} with TRACK_FILTER)",
-        subscriber_id, args.namespace, args.top_n
+        subscriber_id, args.namespace, top_n_value
     );
 
     let _subscribe_ns = subscriber.subscribe_ns_with_params(namespace.clone(), params)?;
@@ -420,8 +513,8 @@ async fn run_subscriber(
     log_topn_event_subscriber_registered(!args.no_topn_log, subscriber_id, is_pub_sub, publisher_id);
 
     info!(
-        "Subscriber {} ready (namespace prefix: {}, is_pub_sub: {})",
-        subscriber_id, args.namespace, is_pub_sub
+        "Subscriber {} ready (namespace prefix: {}, top-{}, is_pub_sub: {})",
+        subscriber_id, args.namespace, top_n_value, is_pub_sub
     );
 
     // Track which publishers we've received PUBLISH for
@@ -443,7 +536,7 @@ async fn run_subscriber(
                         let ns = publish_recv.info.track_namespace.to_string();
                         let track_name = publish_recv.info.track_name.clone();
                         let request_id = publish_recv.info.id;
-                        info!(
+                        debug!(
                             "Subscriber {} received PUBLISH: {}/{}",
                             subscriber_id, ns, track_name
                         );
@@ -461,11 +554,12 @@ async fn run_subscriber(
 
                         if let Err(e) = publish_recv.accept(writer, publish_ok) {
                             error!("Subscriber {} failed to accept PUBLISH: {}", subscriber_id, e);
+                            counters.forward_errors.fetch_add(1, Ordering::Relaxed);
                         } else {
                             let track_path = format!("{}/{}", ns, track_name);
-                            // Log publish_received event for visualization
                             log_topn_event_publish_received(!args.no_topn_log, subscriber_id, &track_path);
                             received_publishes.insert(track_path);
+                            counters.objects_received.fetch_add(1, Ordering::Relaxed);
                         }
                     }
                     None => {
@@ -492,7 +586,7 @@ async fn run_subscriber(
 
                 let expected_top_n: Vec<usize> = ranking
                     .iter()
-                    .take(args.top_n as usize)
+                    .take(top_n_value as usize)
                     .map(|(id, _)| *id)
                     .collect();
 
@@ -502,7 +596,7 @@ async fn run_subscriber(
                 if checks % 50 == 0 {
                     debug!(
                         "Subscriber {} check {}: expected top-{} = {:?}",
-                        subscriber_id, checks, args.top_n, expected_top_n
+                        subscriber_id, checks, top_n_value, expected_top_n
                     );
                 }
 

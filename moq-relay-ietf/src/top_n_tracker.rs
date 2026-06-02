@@ -25,10 +25,11 @@
 //! ```
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, AtomicU8, Ordering};
-use std::sync::{Arc, RwLock};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};
 
+use arc_swap::ArcSwap;
 use moq_transport::coding::TrackNamespace;
 
 /// Structured event logger for visualization
@@ -211,15 +212,26 @@ struct TrackInfo {
 ///
 /// Maintains a sorted snapshot of top tracks by property value.
 /// Self-exclusion is handled at query time, not via pre-computed waterlines.
+///
+/// Optimizations:
+/// - Lock-free snapshot reads via ArcSwap (no mutex on the read path)
+/// - Lazy/coalesced rebuild: marks dirty on write, rebuilds only on next read
+/// - Snapshot versioning for cache invalidation in subscribers
 pub struct TopNTracker {
-    /// Sorted snapshot of top tracks (size = max_n + max_x)
-    snapshot: RwLock<Arc<Vec<TrackRank>>>,
+    /// Sorted snapshot of top tracks (size = max_n + max_x). Lock-free reads.
+    snapshot: ArcSwap<Vec<TrackRank>>,
 
-    /// Track metadata index
-    track_index: RwLock<HashMap<TrackKey, TrackInfo>>,
+    /// Monotonically increasing version, bumped on each snapshot rebuild
+    snapshot_version: AtomicU64,
+
+    /// Dirty flag: set on value update, cleared on rebuild
+    dirty: AtomicBool,
+
+    /// Track metadata index (protected by Mutex for write serialization)
+    track_index: Mutex<HashMap<TrackKey, TrackInfo>>,
 
     /// Track count per publisher (for computing max_x)
-    publisher_track_count: RwLock<HashMap<u64, usize>>,
+    publisher_track_count: Mutex<HashMap<u64, usize>>,
 
     /// Max N across all subscribers
     max_n: AtomicU8,
@@ -253,9 +265,11 @@ impl TopNTracker {
             event_logger.set_enabled(true);
         }
         Self {
-            snapshot: RwLock::new(Arc::new(Vec::new())),
-            track_index: RwLock::new(HashMap::new()),
-            publisher_track_count: RwLock::new(HashMap::new()),
+            snapshot: ArcSwap::from_pointee(Vec::new()),
+            snapshot_version: AtomicU64::new(0),
+            dirty: AtomicBool::new(false),
+            track_index: Mutex::new(HashMap::new()),
+            publisher_track_count: Mutex::new(HashMap::new()),
             max_n: AtomicU8::new(0),
             max_x: AtomicU8::new(0),
             next_seq: AtomicU64::new(0),
@@ -297,9 +311,8 @@ impl TopNTracker {
         let seq = self.next_seq.fetch_add(1, Ordering::Relaxed);
         let now = Instant::now();
 
-        // Update track index
         {
-            let mut index = self.track_index.write().unwrap();
+            let mut index = self.track_index.lock().unwrap();
             if index.contains_key(&key) {
                 log::warn!("track already registered: {:?}", key);
                 return;
@@ -315,17 +328,16 @@ impl TopNTracker {
             );
         }
 
-        // Update publisher track count
         {
-            let mut counts = self.publisher_track_count.write().unwrap();
+            let mut counts = self.publisher_track_count.lock().unwrap();
             let count = counts.entry(publisher_session_id).or_insert(0);
             *count += 1;
             self.update_max_x(&counts);
         }
 
-        self.rebuild_snapshot();
+        // Membership changed (track added) — force immediate rebuild
+        self.do_rebuild_snapshot();
 
-        // Log with full path (namespace/track_name) for better visualization
         let full_track_path = format!("{}/{}", key.namespace, key.track_name);
         self.event_logger.log_track_registered(&full_track_path, property_value, publisher_session_id);
 
@@ -337,16 +349,15 @@ impl TopNTracker {
         );
     }
 
-    /// Update a track's property value
+    /// Update a track's property value. Marks dirty for lazy rebuild.
     pub fn update_value(&self, namespace: &TrackNamespace, track_name: &str, new_value: u64) {
         let key = TrackKey::new(namespace.clone(), track_name.to_string());
         let now = Instant::now();
 
         let old_value_and_publisher = {
-            let mut index = self.track_index.write().unwrap();
+            let mut index = self.track_index.lock().unwrap();
             if let Some(info) = index.get_mut(&key) {
                 if info.property_value == new_value {
-                    // Even if value unchanged, update timestamp (track is still active)
                     info.last_update = now;
                     return;
                 }
@@ -361,7 +372,8 @@ impl TopNTracker {
             }
         };
 
-        self.rebuild_snapshot();
+        // Mark dirty — snapshot will be rebuilt lazily on next read
+        self.dirty.store(true, Ordering::Release);
 
         if let Some((old_value, publisher_id)) = old_value_and_publisher {
             self.event_logger.log_value_updated(track_name, old_value, new_value, publisher_id);
@@ -371,17 +383,14 @@ impl TopNTracker {
     }
 
     /// Touch a track to update its last_update timestamp without changing value
-    /// Useful for keeping tracks fresh when they're actively producing content
     pub fn touch_track(&self, namespace: &TrackNamespace, track_name: &str) {
         let key = TrackKey::new(namespace.clone(), track_name.to_string());
         let now = Instant::now();
 
-        let mut index = self.track_index.write().unwrap();
+        let mut index = self.track_index.lock().unwrap();
         if let Some(info) = index.get_mut(&key) {
             info.last_update = now;
         }
-        // Note: no rebuild needed since touch doesn't change value or rank
-        // (unless using MostRecentWins policy, but that would require rebuild)
     }
 
     /// Remove a track
@@ -389,7 +398,7 @@ impl TopNTracker {
         let key = TrackKey::new(namespace.clone(), track_name.to_string());
 
         let publisher_session_id = {
-            let mut index = self.track_index.write().unwrap();
+            let mut index = self.track_index.lock().unwrap();
             if let Some(info) = index.remove(&key) {
                 Some(info.publisher_session_id)
             } else {
@@ -397,9 +406,8 @@ impl TopNTracker {
             }
         };
 
-        // Update publisher track count
         if let Some(session_id) = publisher_session_id {
-            let mut counts = self.publisher_track_count.write().unwrap();
+            let mut counts = self.publisher_track_count.lock().unwrap();
             if let Some(count) = counts.get_mut(&session_id) {
                 *count -= 1;
                 if *count == 0 {
@@ -411,7 +419,8 @@ impl TopNTracker {
             self.event_logger.log_track_removed(track_name, session_id);
         }
 
-        self.rebuild_snapshot();
+        // Membership changed — force immediate rebuild
+        self.do_rebuild_snapshot();
 
         log::debug!("removed track {:?}", key);
     }
@@ -420,7 +429,7 @@ impl TopNTracker {
     pub fn update_max_n(&self, new_max_n: u8) {
         let old = self.max_n.swap(new_max_n, Ordering::Relaxed);
         if old != new_max_n {
-            self.rebuild_snapshot();
+            self.do_rebuild_snapshot();
         }
     }
 
@@ -429,9 +438,17 @@ impl TopNTracker {
         self.max_n.load(Ordering::Relaxed)
     }
 
-    /// Load the current snapshot (for concurrent reads)
+    /// Get current snapshot version (for cache invalidation)
+    pub fn snapshot_version(&self) -> u64 {
+        self.snapshot_version.load(Ordering::Acquire)
+    }
+
+    /// Load the current snapshot (lock-free). Rebuilds if dirty.
     pub fn load_snapshot(&self) -> Arc<Vec<TrackRank>> {
-        self.snapshot.read().unwrap().clone()
+        if self.dirty.load(Ordering::Acquire) {
+            self.do_rebuild_snapshot();
+        }
+        self.snapshot.load_full()
     }
 
     /// Compute top-N tracks for a session, excluding self-published tracks
@@ -591,9 +608,16 @@ impl TopNTracker {
         snapshot.iter().position(|t| &t.namespace == namespace && t.track_name == track_name)
     }
 
+    /// Force a snapshot rebuild if dirty. Called by external code that needs fresh data.
+    pub fn ensure_fresh(&self) {
+        if self.dirty.load(Ordering::Acquire) {
+            self.do_rebuild_snapshot();
+        }
+    }
+
     /// Get number of tracked tracks
     pub fn num_tracks(&self) -> usize {
-        self.track_index.read().unwrap().len()
+        self.track_index.lock().unwrap().len()
     }
 
     /// Sweep stale tracks from the index and rebuild snapshot
@@ -611,9 +635,8 @@ impl TopNTracker {
         let mut removed_count = 0;
         let mut affected_publishers = Vec::new();
 
-        // Remove stale tracks from index
         {
-            let mut index = self.track_index.write().unwrap();
+            let mut index = self.track_index.lock().unwrap();
             let stale_keys: Vec<_> = index
                 .iter()
                 .filter(|(_, info)| now.duration_since(info.last_update) >= timeout)
@@ -627,9 +650,8 @@ impl TopNTracker {
             }
         }
 
-        // Update publisher track counts
         if !affected_publishers.is_empty() {
-            let mut counts = self.publisher_track_count.write().unwrap();
+            let mut counts = self.publisher_track_count.lock().unwrap();
             for publisher_id in affected_publishers {
                 if let Some(count) = counts.get_mut(&publisher_id) {
                     *count = count.saturating_sub(1);
@@ -642,7 +664,7 @@ impl TopNTracker {
         }
 
         if removed_count > 0 {
-            self.rebuild_snapshot();
+            self.do_rebuild_snapshot();
             log::debug!("swept {} stale tracks", removed_count);
         }
 
@@ -657,12 +679,14 @@ impl TopNTracker {
             .store(max.min(255) as u8, Ordering::Relaxed);
     }
 
-    fn rebuild_snapshot(&self) {
+    fn do_rebuild_snapshot(&self) {
+        self.dirty.store(false, Ordering::Release);
+
         let max_n = self.max_n.load(Ordering::Relaxed) as usize;
         let max_x = self.max_x.load(Ordering::Relaxed) as usize;
 
         if max_n == 0 {
-            *self.snapshot.write().unwrap() = Arc::new(Vec::new());
+            self.snapshot.store(Arc::new(Vec::new()));
             return;
         }
 
@@ -670,12 +694,10 @@ impl TopNTracker {
         let now = Instant::now();
         let staleness_threshold = self.config.staleness_timeout;
 
-        // Build sorted list from index, filtering out stale tracks
-        let index = self.track_index.read().unwrap();
+        let index = self.track_index.lock().unwrap();
         let mut tracks: Vec<TrackRank> = index
             .iter()
             .filter(|(_, info)| {
-                // Filter out stale tracks if staleness is configured
                 match staleness_threshold {
                     Some(timeout) => now.duration_since(info.last_update) < timeout,
                     None => true,
@@ -691,14 +713,12 @@ impl TopNTracker {
             })
             .collect();
 
-        // Sort by property value descending with configurable tie-breaking
         let policy = self.config.tie_break_policy;
         tracks.sort_by(|a, b| a.rank_cmp(b, policy));
-
-        // Truncate to snapshot_size
         tracks.truncate(snapshot_size);
 
-        *self.snapshot.write().unwrap() = Arc::new(tracks);
+        self.snapshot.store(Arc::new(tracks));
+        self.snapshot_version.fetch_add(1, Ordering::Release);
     }
 }
 

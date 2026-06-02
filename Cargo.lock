@@ -1328,6 +1328,7 @@ name = "moq-relay-ietf"
 version = "0.7.10"
 dependencies = [
  "anyhow",
+ "arc-swap",
  "async-trait",
  "axum",
  "clap",

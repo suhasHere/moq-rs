@@ -1714,11 +1714,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "blind-rsa-signatures",
  "bytes",
  "moq-auth",
  "moq-transport",
  "privacypass",
  "thiserror 2.0.17",
+ "tls_codec",
  "tokio",
  "tracing",
 ]
@@ -2164,6 +2166,7 @@ dependencies = [
  "thiserror 2.0.17",
  "tls_codec",
  "tls_codec_derive",
+ "tokio",
  "trait-variant",
  "typenum",
  "voprf",

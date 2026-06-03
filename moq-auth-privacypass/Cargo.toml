@@ -21,8 +21,11 @@ moq-auth = { path = "../moq-auth", version = "0.1" }
 moq-transport = { path = "../moq-transport", version = "0.14" }
 privacypass = { git = "https://github.com/raphaelrobert/privacypass", rev = "48296d412e9d6e4b9b3a6a9f747e39bce253fcfb" }
 thiserror = "2"
+tls_codec = "0.4.2"
 tokio = { version = "1", features = ["sync", "time"] }
 tracing = { workspace = true }
 
 [dev-dependencies]
+blind-rsa-signatures = "0.17"
+privacypass = { git = "https://github.com/raphaelrobert/privacypass", rev = "48296d412e9d6e4b9b3a6a9f747e39bce253fcfb", features = ["test-utils"] }
 tokio = { version = "1", features = ["rt", "macros"] }

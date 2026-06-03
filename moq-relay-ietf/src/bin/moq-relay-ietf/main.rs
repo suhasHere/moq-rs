@@ -218,6 +218,7 @@ async fn main() -> anyhow::Result<()> {
         announce: cli.announce,
         coordinator,
         auth_hook: auth_config.hook.clone(),
+        auth_setup_challenge_reason: auth_config.pp_setup_challenge_reason.clone(),
     })?;
 
     if cli.dev {
@@ -244,6 +245,7 @@ struct AuthConfig {
     hook: Option<Arc<dyn moq_auth::AuthHook>>,
     pp_challenges: Option<Arc<moq_auth_privacypass::ChallengeRegistry>>,
     pp_issuer_name: Option<String>,
+    pp_setup_challenge_reason: Option<Vec<u8>>,
 }
 
 async fn build_auth_hook(cli: &Cli) -> anyhow::Result<AuthConfig> {
@@ -259,6 +261,7 @@ async fn build_auth_hook(cli: &Cli) -> anyhow::Result<AuthConfig> {
             ))),
             pp_challenges: None,
             pp_issuer_name: None,
+            pp_setup_challenge_reason: None,
         });
     }
 
@@ -270,11 +273,16 @@ async fn build_auth_hook(cli: &Cli) -> anyhow::Result<AuthConfig> {
         )
         .with_setup_required(cli.pp_setup_required);
         let challenges = hook.challenges();
+        let issuer_name = cli.pp_issuer.host_str().map(ToString::to_string);
         tracing::info!(issuer = %cli.pp_issuer, setup_required = cli.pp_setup_required, "Privacy Pass auth enabled");
         return Ok(AuthConfig {
             hook: Some(Arc::new(hook)),
             pp_challenges: Some(challenges),
-            pp_issuer_name: cli.pp_issuer.host_str().map(ToString::to_string),
+            pp_setup_challenge_reason: issuer_name
+                .as_deref()
+                .map(moq_auth_privacypass::setup_challenge_reason)
+                .transpose()?,
+            pp_issuer_name: issuer_name,
         });
     }
 
@@ -282,6 +290,7 @@ async fn build_auth_hook(cli: &Cli) -> anyhow::Result<AuthConfig> {
         hook: None,
         pp_challenges: None,
         pp_issuer_name: None,
+        pp_setup_challenge_reason: None,
     })
 }
 

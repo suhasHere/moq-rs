@@ -4,6 +4,13 @@
 use privacypass::auth::authenticate::TokenChallenge;
 use tls_codec::{Deserialize, Serialize, TlsByteVecU16};
 
+use crate::ChallengeScope;
+
+pub fn setup_challenge_reason(issuer_name: &str) -> Result<Vec<u8>, MoqAuthChallengeError> {
+    MoqAuthChallenge::new(vec![ChallengeScope::setup().token_challenge(issuer_name)])?
+        .encode_for_reason_phrase()
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MoqAuthChallenge {
     challenges: Vec<TokenChallenge>,

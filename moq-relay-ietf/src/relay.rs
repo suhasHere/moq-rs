@@ -59,6 +59,9 @@ pub struct RelayConfig {
 
     /// Authorization hook for validating tokens. Defaults to AllowAllAuthHook.
     pub auth_hook: Option<Arc<dyn AuthHook>>,
+
+    /// Raw reason bytes to use when setup authorization fails.
+    pub auth_setup_challenge_reason: Option<Vec<u8>>,
 }
 
 /// MoQ Relay server.
@@ -70,6 +73,7 @@ pub struct Relay {
     remotes: RemoteManager,
     coordinator: Arc<dyn Coordinator>,
     auth_hook: Arc<dyn AuthHook>,
+    auth_setup_challenge_reason: Option<Vec<u8>>,
 }
 
 impl Relay {
@@ -127,6 +131,7 @@ impl Relay {
             remotes,
             coordinator: config.coordinator,
             auth_hook,
+            auth_setup_challenge_reason: config.auth_setup_challenge_reason,
         })
     }
 
@@ -140,6 +145,7 @@ impl Relay {
             remotes,
             coordinator,
             auth_hook,
+            auth_setup_challenge_reason,
         } = self;
 
         let run_result = async {
@@ -273,6 +279,7 @@ impl Relay {
                         let forward = forward_producer.clone();
                         let coordinator = coordinator.clone();
                         let auth_hook = auth_hook.clone();
+                        let auth_setup_challenge_reason = auth_setup_challenge_reason.clone();
 
                         // Spawn a new task to handle the connection
                         tasks.push(async move {
@@ -363,14 +370,22 @@ impl Relay {
                                         verdict = ?decision.verdict,
                                         "auth on_setup: denied, closing session"
                                     );
-                                    raw_conn.close(0x2, "unauthorized");
+                                    if let Some(reason) = &auth_setup_challenge_reason {
+                                        raw_conn.close_bytes(0x2, reason);
+                                    } else {
+                                        raw_conn.close(0x2, "unauthorized");
+                                    }
                                     metrics::counter!("moq_relay_connection_errors_total", "stage" => "auth_setup").increment(1);
                                     metrics::counter!("moq_relay_connections_closed_total").increment(1);
                                     return Ok(());
                                 }
                                 Err(err) => {
                                     tracing::error!(error = %err, "auth hook on_setup failed");
-                                    raw_conn.close(0x2, "authorization error");
+                                    if let Some(reason) = &auth_setup_challenge_reason {
+                                        raw_conn.close_bytes(0x2, reason);
+                                    } else {
+                                        raw_conn.close(0x2, "authorization error");
+                                    }
                                     metrics::counter!("moq_relay_connection_errors_total", "stage" => "auth_setup").increment(1);
                                     metrics::counter!("moq_relay_connections_closed_total").increment(1);
                                     return Ok(());

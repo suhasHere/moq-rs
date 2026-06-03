@@ -19,9 +19,12 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-web-transport = "0.10"
+web-transport = { git = "https://github.com/thibmeu/web-transport", rev = "6fd255b6f3d3a5ba8924fb11ea0004473d907c8f" }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[patch.crates-io]
+web-transport-quinn = { git = "https://github.com/thibmeu/web-transport", rev = "6fd255b6f3d3a5ba8924fb11ea0004473d907c8f" }
 
 # Use debug symbols in production until things are more stable
 [profile.release]

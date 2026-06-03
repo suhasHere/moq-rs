@@ -33,9 +33,7 @@ impl From<&str> for ReasonPhrase {
 impl Encode for ReasonPhrase {
     fn encode<W: bytes::BufMut>(&self, w: &mut W) -> Result<(), EncodeError> {
         if self.0.len() > Self::MAX_LEN {
-            return Err(EncodeError::FieldBoundsExceeded(
-                "ReasonPhrase".to_string(),
-            ));
+            return Err(EncodeError::FieldBoundsExceeded("ReasonPhrase".to_string()));
         }
         self.0.len().encode(w)?;
         Self::encode_remaining(w, self.0.len())?;
@@ -48,9 +46,7 @@ impl Decode for ReasonPhrase {
     fn decode<R: bytes::Buf>(r: &mut R) -> Result<Self, DecodeError> {
         let size = usize::decode(r)?;
         if size > Self::MAX_LEN {
-            return Err(DecodeError::FieldBoundsExceeded(
-                "ReasonPhrase".to_string(),
-            ));
+            return Err(DecodeError::FieldBoundsExceeded("ReasonPhrase".to_string()));
         }
         Self::decode_remaining(r, size)?;
         let mut buf = vec![0; size];

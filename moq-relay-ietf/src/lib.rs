@@ -48,6 +48,7 @@ pub use coordinator::*;
 pub use local::*;
 pub use moq_auth;
 pub use producer::*;
+pub(crate) use relay::parse_auth_tokens_from_params;
 pub use relay::*;
 pub use remote::RemoteManager;
 pub use session::*;

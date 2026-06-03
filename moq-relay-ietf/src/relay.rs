@@ -10,7 +10,7 @@ use moq_native_ietf::quic::{self, Endpoint};
 use url::Url;
 
 use moq_auth::{AllowAllAuthHook, AuthBlob, AuthHook, SessionContext};
-use moq_transport::coding::{Decode, VarInt};
+use moq_transport::coding::{Decode, KeyValuePairs, Value, VarInt};
 
 use crate::{metrics::GaugeGuard, Consumer, Coordinator, Locals, Producer, RemoteManager, Session};
 
@@ -502,6 +502,18 @@ fn parse_auth_tokens(raw: &[u8]) -> Vec<AuthBlob> {
     }
 
     tokens
+}
+
+pub(crate) fn parse_auth_tokens_from_params(params: &KeyValuePairs) -> Vec<AuthBlob> {
+    let Some(kvp) = params.get(moq_transport::setup::ParameterType::AuthorizationToken.into())
+    else {
+        return vec![];
+    };
+    let Value::BytesValue(raw) = &kvp.value else {
+        tracing::warn!("AUTHORIZATION TOKEN parameter must be bytes encoded");
+        return vec![];
+    };
+    parse_auth_tokens(raw)
 }
 
 fn rand_session_id() -> u64 {

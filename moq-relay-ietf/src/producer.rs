@@ -12,7 +12,7 @@ use moq_transport::{
 
 use crate::{
     metrics::{GaugeGuard, TimingGuard},
-    Locals, RemoteManager,
+    parse_auth_tokens_from_params, Locals, RemoteManager,
 };
 
 /// Producer of tracks to a remote Subscriber
@@ -128,7 +128,13 @@ impl Producer {
             },
             request_id: None,
         };
-        match self.auth_hook.on_request(&req_ctx, &self.auth_tokens).await {
+        let request_tokens = parse_auth_tokens_from_params(&subscribed.info.params);
+        let auth_tokens = if request_tokens.is_empty() {
+            &self.auth_tokens
+        } else {
+            &request_tokens
+        };
+        match self.auth_hook.on_request(&req_ctx, auth_tokens).await {
             Ok(decision) if !decision.is_allowed() => {
                 let err = ServeError::not_found_ctx("unauthorized");
                 subscribed.close(err.clone())?;

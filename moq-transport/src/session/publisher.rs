@@ -10,7 +10,7 @@ use std::{
 use futures::{stream::FuturesUnordered, StreamExt};
 
 use crate::{
-    coding::TrackNamespace,
+    coding::{KeyValuePairs, TrackNamespace},
     message::{self, Message},
     mlog,
     serve::{ServeError, TracksReader},
@@ -104,6 +104,22 @@ impl Publisher {
     /// Announce a namespace and serve tracks using the provided [serve::TracksReader].
     /// The caller uses [serve::TracksWriter] for static tracks and [serve::TracksRequest] for dynamic tracks.
     pub async fn announce(&mut self, tracks: TracksReader) -> Result<(), SessionError> {
+        self.announce_inner(tracks, Default::default()).await
+    }
+
+    pub async fn announce_with_params(
+        &mut self,
+        tracks: TracksReader,
+        params: KeyValuePairs,
+    ) -> Result<(), SessionError> {
+        self.announce_inner(tracks, params).await
+    }
+
+    async fn announce_inner(
+        &mut self,
+        tracks: TracksReader,
+        params: KeyValuePairs,
+    ) -> Result<(), SessionError> {
         // Check if annouce for this namespace already exists or not, and if not, then create a new Announce
         let announce = match self
             .announces
@@ -119,8 +135,12 @@ impl Publisher {
                 // Get the current next request id to use and increment the value for by 2 for the next request
                 let request_id = self.next_requestid.fetch_add(2, atomic::Ordering::Relaxed);
 
-                let (send, recv) =
-                    Announce::new(self.clone(), request_id, tracks.namespace.clone());
+                let (send, recv) = Announce::new_with_params(
+                    self.clone(),
+                    request_id,
+                    tracks.namespace.clone(),
+                    params,
+                );
                 entry.insert(recv);
                 send
             }

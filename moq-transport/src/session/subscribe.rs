@@ -88,10 +88,11 @@ pub struct Subscribe {
 }
 
 impl Subscribe {
-    pub(super) fn new(
+    pub(super) fn new_with_params(
         mut subscriber: Subscriber,
         request_id: u64,
         track: TrackWriter,
+        params: KeyValuePairs,
     ) -> (Subscribe, SubscribeRecv) {
         let subscribe_message = message::Subscribe {
             id: request_id,
@@ -104,7 +105,7 @@ impl Subscribe {
             filter_type: FilterType::LargestObject,
             start_location: None,
             end_group_id: None,
-            params: Default::default(),
+            params,
         };
         let info = SubscribeInfo::new_from_subscribe(&subscribe_message);
 

@@ -34,6 +34,7 @@ impl Announced {
         let info = AnnounceInfo {
             request_id,
             namespace,
+            params: Default::default(),
         };
 
         let (send, recv) = State::default().split();

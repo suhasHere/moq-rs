@@ -42,8 +42,14 @@ pub fn encode_auth_token(token_type: u64, token_value: &[u8]) -> Vec<u8> {
 
     let mut buf = Vec::new();
     VarInt::from_u32(0x3).encode(&mut buf).unwrap(); // USE_VALUE
-    VarInt::try_from(token_type).unwrap().encode(&mut buf).unwrap();
-    VarInt::try_from(token_value.len() as u64).unwrap().encode(&mut buf).unwrap();
+    VarInt::try_from(token_type)
+        .unwrap()
+        .encode(&mut buf)
+        .unwrap();
+    VarInt::try_from(token_value.len() as u64)
+        .unwrap()
+        .encode(&mut buf)
+        .unwrap();
     buf.extend_from_slice(token_value);
     buf
 }

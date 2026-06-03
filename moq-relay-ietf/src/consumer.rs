@@ -11,7 +11,7 @@ use moq_transport::{
     session::{Announced, SessionError, Subscriber},
 };
 
-use crate::{metrics::GaugeGuard, Coordinator, Locals, Producer};
+use crate::{metrics::GaugeGuard, parse_auth_tokens_from_params, Coordinator, Locals, Producer};
 
 /// Consumer of tracks from a remote Publisher
 #[derive(Clone)]
@@ -95,7 +95,13 @@ impl Consumer {
             },
             request_id: None,
         };
-        match self.auth_hook.on_request(&req_ctx, &self.auth_tokens).await {
+        let request_tokens = parse_auth_tokens_from_params(&announce.info.params);
+        let auth_tokens = if request_tokens.is_empty() {
+            &self.auth_tokens
+        } else {
+            &request_tokens
+        };
+        match self.auth_hook.on_request(&req_ctx, auth_tokens).await {
             Ok(decision) if !decision.is_allowed() => {
                 metrics::counter!("moq_relay_announce_errors_total", "phase" => "auth")
                     .increment(1);

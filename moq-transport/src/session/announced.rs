@@ -99,13 +99,13 @@ impl Drop for Announced {
             self.session.send_message(message::PublishNamespaceCancel {
                 track_namespace: self.namespace.clone(),
                 error_code: err.code(),
-                reason_phrase: ReasonPhrase(err.to_string()),
+                reason_phrase: ReasonPhrase::text(err.to_string()),
             });
         } else {
             self.session.send_message(message::PublishNamespaceError {
                 id: self.info.request_id,
                 error_code: err.code(),
-                reason_phrase: ReasonPhrase(err.to_string()),
+                reason_phrase: ReasonPhrase::text(err.to_string()),
             });
         }
     }

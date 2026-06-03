@@ -251,7 +251,7 @@ impl Session {
                     msg_type = "SUBSCRIBE_ERROR",
                     subscribe_id = m.id,
                     error_code = m.error_code,
-                    reason = %m.reason_phrase.0,
+                    reason = %m.reason_phrase.as_lossy_str(),
                     "MoQT control message"
                 );
             }
@@ -300,7 +300,7 @@ impl Session {
                     msg_type = "PUBLISH_NAMESPACE_ERROR",
                     request_id = m.id,
                     error_code = m.error_code,
-                    reason = %m.reason_phrase.0,
+                    reason = %m.reason_phrase.as_lossy_str(),
                     "MoQT control message"
                 );
             }
@@ -320,7 +320,7 @@ impl Session {
                     msg_type = "PUBLISH_NAMESPACE_CANCEL",
                     namespace = %m.track_namespace,
                     error_code = m.error_code,
-                    reason = %m.reason_phrase.0,
+                    reason = %m.reason_phrase.as_lossy_str(),
                     "MoQT control message"
                 );
             }
@@ -353,7 +353,7 @@ impl Session {
                     msg_type = "TRACK_STATUS_ERROR",
                     request_id = m.id,
                     error_code = m.error_code,
-                    reason = %m.reason_phrase.0,
+                    reason = %m.reason_phrase.as_lossy_str(),
                     "MoQT control message"
                 );
             }
@@ -383,7 +383,7 @@ impl Session {
                     msg_type = "SUBSCRIBE_NAMESPACE_ERROR",
                     request_id = m.id,
                     error_code = m.error_code,
-                    reason = %m.reason_phrase.0,
+                    reason = %m.reason_phrase.as_lossy_str(),
                     "MoQT control message"
                 );
             }
@@ -423,7 +423,7 @@ impl Session {
                     msg_type = "FETCH_ERROR",
                     request_id = m.id,
                     error_code = m.error_code,
-                    reason = %m.reason_phrase.0,
+                    reason = %m.reason_phrase.as_lossy_str(),
                     "MoQT control message"
                 );
             }
@@ -465,7 +465,7 @@ impl Session {
                     msg_type = "PUBLISH_ERROR",
                     request_id = m.id,
                     error_code = m.error_code,
-                    reason = %m.reason_phrase.0,
+                    reason = %m.reason_phrase.as_lossy_str(),
                     "MoQT control message"
                 );
             }

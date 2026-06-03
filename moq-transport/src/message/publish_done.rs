@@ -61,7 +61,7 @@ mod tests {
             id: 12345,
             status_code: 0x02,
             stream_count: 2,
-            reason: ReasonPhrase("Track Ended".to_string()),
+            reason: ReasonPhrase::text("Track Ended"),
         };
         msg.encode(&mut buf).unwrap();
         let decoded = PublishDone::decode(&mut buf).unwrap();

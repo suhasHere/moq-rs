@@ -50,7 +50,7 @@ mod tests {
         let msg = PublishNamespaceCancel {
             track_namespace: TrackNamespace::from_utf8_path("testpath/video"),
             error_code: 0x2,
-            reason_phrase: ReasonPhrase("Timeout".to_string()),
+            reason_phrase: ReasonPhrase::text("Timeout"),
         };
         msg.encode(&mut buf).unwrap();
         let decoded = PublishNamespaceCancel::decode(&mut buf).unwrap();

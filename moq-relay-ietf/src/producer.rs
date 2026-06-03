@@ -2,8 +2,6 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
 use moq_transport::{
-    coding::{KeyValuePairs, TrackNamespace},
-    message,
     serve::{ServeError, TracksReader},
     session::{
         PublishNamespace, Publisher, SessionError, SubscribeNamespaceReceived, Subscribed,
@@ -269,8 +267,6 @@ impl Producer {
             let mut publisher = self.publisher.clone();
             let registry = self.subscriber_registry.clone();
             let session_id = self.session_id;
-            // For existing tracks, we use track_alias 0 as placeholder (not used in TopN update notifications)
-            let track_alias = 0u64;
 
             tokio::spawn(async move {
                 match publisher.publish_with_extensions(track_reader.clone(), track_extensions).await {
@@ -280,7 +276,7 @@ impl Producer {
                             ns,
                             track_name
                         );
-                        // Create observer to update TopN tracker and filter objects
+                        // Create filter-only observer (update_track_value is handled by ingest observer in Consumer)
                         let observer = if let Some(ref reg) = registry {
                             let reg = reg.clone();
                             let ns_for_observer = ns.clone();
@@ -289,47 +285,31 @@ impl Producer {
                             let epoch = reg.snapshot_epoch();
                             let cached_epoch = AtomicU64::new(u64::MAX);
                             let cached_result = AtomicBool::new(true);
-                            let last_value = AtomicU64::new(u64::MAX);
-                            Some(moq_transport::session::ObjectObserverFn::from(
-                                Box::new(move |group_id: u64, object_id: u64, ext_headers: &moq_transport::data::ExtensionHeaders| {
-                                    const AUDIO_LEVEL_EXT: u64 = 0x12;
-                                    if let Some(kvp) = ext_headers.get(AUDIO_LEVEL_EXT) {
-                                        if let moq_transport::coding::Value::IntValue(value) = kvp.value {
-                                            if last_value.swap(value, Ordering::Relaxed) != value {
-                                                log::debug!(
-                                                    "object observer (existing): {}/{} group={} obj={} audio_level={}",
-                                                    ns_for_observer, name_for_observer, group_id, object_id, value
-                                                );
-                                                reg.update_track_value(
+                            if track_filter.is_some() {
+                                Some(moq_transport::session::ObjectObserverFn::from(
+                                    Box::new(move |_group_id: u64, _object_id: u64, _ext_headers: &moq_transport::data::ExtensionHeaders| {
+                                        if let Some(ref filter) = track_filter {
+                                            let current_epoch = epoch.load(Ordering::Acquire);
+                                            if current_epoch != cached_epoch.load(Ordering::Relaxed) {
+                                                let in_top_n = reg.is_track_in_top_n(
                                                     &ns_for_observer,
                                                     &name_for_observer,
-                                                    AUDIO_LEVEL_EXT,
-                                                    value,
-                                                    track_alias,
                                                     session_id,
+                                                    filter.property_type,
+                                                    filter.max_selected,
                                                 );
+                                                cached_epoch.store(current_epoch, Ordering::Relaxed);
+                                                cached_result.store(in_top_n, Ordering::Relaxed);
                                             }
+                                            cached_result.load(Ordering::Relaxed)
+                                        } else {
+                                            true
                                         }
-                                    }
-                                    if let Some(ref filter) = track_filter {
-                                        let current_epoch = epoch.load(Ordering::Acquire);
-                                        if current_epoch != cached_epoch.load(Ordering::Relaxed) {
-                                            let in_top_n = reg.is_track_in_top_n(
-                                                &ns_for_observer,
-                                                &name_for_observer,
-                                                session_id,
-                                                filter.property_type,
-                                                filter.max_selected,
-                                            );
-                                            cached_epoch.store(current_epoch, Ordering::Relaxed);
-                                            cached_result.store(in_top_n, Ordering::Relaxed);
-                                        }
-                                        cached_result.load(Ordering::Relaxed)
-                                    } else {
-                                        true
-                                    }
-                                }) as Box<dyn Fn(u64, u64, &moq_transport::data::ExtensionHeaders) -> bool + Send + Sync>
-                            ))
+                                    }) as Box<dyn Fn(u64, u64, &moq_transport::data::ExtensionHeaders) -> bool + Send + Sync>
+                                ))
+                            } else {
+                                None
+                            }
                         } else {
                             None
                         };
@@ -396,7 +376,6 @@ impl Producer {
                                     let ns = publish_notif.namespace.clone();
                                     let name = publish_notif.track_name.clone();
                                     let registry = self.subscriber_registry.clone();
-                                    let track_alias = publish_notif.track_alias;
                                     let session_id = self.session_id;
                                     log::info!(
                                         "forwarding PUBLISH for {}/{} with extensions {:?}",
@@ -409,8 +388,7 @@ impl Producer {
                                                     "sent PUBLISH for {}/{}, waiting for PUBLISH_OK",
                                                     ns, name
                                                 );
-                                                // Create observer to update TopN tracker and filter objects
-                                                // The observer both updates the tracker AND returns whether to forward
+                                                // Create filter-only observer (update_track_value handled by ingest observer in Consumer)
                                                 let observer = if let Some(ref reg) = registry {
                                                     let reg = reg.clone();
                                                     let ns_for_observer = ns.clone();
@@ -419,48 +397,31 @@ impl Producer {
                                                     let epoch = reg.snapshot_epoch();
                                                     let cached_epoch = AtomicU64::new(u64::MAX);
                                                     let cached_result = AtomicBool::new(true);
-                                                    let last_value = AtomicU64::new(u64::MAX);
-                                                    Some(moq_transport::session::ObjectObserverFn::from(
-                                                        Box::new(move |group_id: u64, object_id: u64, ext_headers: &moq_transport::data::ExtensionHeaders| {
-                                                            const AUDIO_LEVEL_EXT: u64 = 0x12;
-                                                            if let Some(kvp) = ext_headers.get(AUDIO_LEVEL_EXT) {
-                                                                if let moq_transport::coding::Value::IntValue(value) = kvp.value {
-                                                                    if last_value.swap(value, Ordering::Relaxed) != value {
-                                                                        log::debug!(
-                                                                            "object observer: {}/{} group={} obj={} audio_level={}",
-                                                                            ns_for_observer, name_for_observer, group_id, object_id, value
-                                                                        );
-                                                                        reg.update_track_value(
+                                                    if track_filter.is_some() {
+                                                        Some(moq_transport::session::ObjectObserverFn::from(
+                                                            Box::new(move |_group_id: u64, _object_id: u64, _ext_headers: &moq_transport::data::ExtensionHeaders| {
+                                                                if let Some(ref filter) = track_filter {
+                                                                    let current_epoch = epoch.load(Ordering::Acquire);
+                                                                    if current_epoch != cached_epoch.load(Ordering::Relaxed) {
+                                                                        let in_top_n = reg.is_track_in_top_n(
                                                                             &ns_for_observer,
                                                                             &name_for_observer,
-                                                                            AUDIO_LEVEL_EXT,
-                                                                            value,
-                                                                            track_alias,
                                                                             session_id,
+                                                                            filter.property_type,
+                                                                            filter.max_selected,
                                                                         );
+                                                                        cached_epoch.store(current_epoch, Ordering::Relaxed);
+                                                                        cached_result.store(in_top_n, Ordering::Relaxed);
                                                                     }
+                                                                    cached_result.load(Ordering::Relaxed)
+                                                                } else {
+                                                                    true
                                                                 }
-                                                            }
-
-                                                            if let Some(ref filter) = track_filter {
-                                                                let current_epoch = epoch.load(Ordering::Acquire);
-                                                                if current_epoch != cached_epoch.load(Ordering::Relaxed) {
-                                                                    let in_top_n = reg.is_track_in_top_n(
-                                                                        &ns_for_observer,
-                                                                        &name_for_observer,
-                                                                        session_id,
-                                                                        filter.property_type,
-                                                                        filter.max_selected,
-                                                                    );
-                                                                    cached_epoch.store(current_epoch, Ordering::Relaxed);
-                                                                    cached_result.store(in_top_n, Ordering::Relaxed);
-                                                                }
-                                                                cached_result.load(Ordering::Relaxed)
-                                                            } else {
-                                                                true
-                                                            }
-                                                        }) as Box<dyn Fn(u64, u64, &moq_transport::data::ExtensionHeaders) -> bool + Send + Sync>
-                                                    ))
+                                                            }) as Box<dyn Fn(u64, u64, &moq_transport::data::ExtensionHeaders) -> bool + Send + Sync>
+                                                        ))
+                                                    } else {
+                                                        None
+                                                    }
                                                 } else {
                                                     None
                                                 };

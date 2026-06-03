@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use anyhow::Context;
 use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
@@ -63,9 +64,13 @@ impl Consumer {
         let mut tasks: FuturesUnordered<futures::future::BoxFuture<'_, ()>> =
             FuturesUnordered::new();
 
+        log::debug!("[CONSUMER] run: starting main loop");
+
         loop {
             let mut subscriber_ns = self.subscriber.clone();
             let mut subscriber_publish = self.subscriber.clone();
+
+            log::trace!("[CONSUMER] run: waiting on select (tasks={})", tasks.len());
 
             tokio::select! {
                 Some(publish_ns) = subscriber_ns.publish_ns_recvd() => {
@@ -81,6 +86,7 @@ impl Consumer {
                     }.boxed());
                 },
                 Some(publish) = subscriber_publish.publish_received() => {
+                    log::debug!("[CONSUMER] run: received track-level PUBLISH");
                     let this = self.clone();
 
                     tasks.push(async move {
@@ -92,8 +98,13 @@ impl Consumer {
                         }
                     }.boxed());
                 },
-                _ = tasks.next(), if !tasks.is_empty() => {},
-                else => return Ok(()),
+                _ = tasks.next(), if !tasks.is_empty() => {
+                    log::trace!("[CONSUMER] run: a task completed");
+                },
+                else => {
+                    log::debug!("[CONSUMER] run: else branch triggered, returning");
+                    return Ok(());
+                },
             };
         }
     }
@@ -269,6 +280,54 @@ impl Consumer {
             initial_forward
         );
 
+        // Register track with TopN tracker if track_extensions contain property values
+        // This enables top-N filtering for SUBSCRIBE_NAMESPACE with TRACK_FILTER
+        if let Some(ref registry) = self.subscriber_registry {
+            // Check for known property types in track_extensions
+            // AUDIO_LEVEL_EXT = 0x12 (18) - audio level for active speaker detection
+            const AUDIO_LEVEL_EXT: u64 = 0x12;
+
+            if let Some(track_exts) = track_info.track_extensions() {
+                if let Some(kvp) = track_exts.get(AUDIO_LEVEL_EXT) {
+                    if let moq_transport::coding::Value::IntValue(audio_level) = kvp.value {
+                        registry.register_track(
+                            &namespace,
+                            &track_name,
+                            AUDIO_LEVEL_EXT,
+                            audio_level,
+                            self.session_id,
+                        );
+                        log::info!(
+                            "registered track {}/{} with TopN tracker (audio_level={})",
+                            namespace,
+                            track_name,
+                            audio_level
+                        );
+                    }
+                }
+            }
+
+            // Spawn ingest observer: single task that reads objects and calls
+            // update_track_value once per value change (removes 799/800 redundant
+            // mutex locks from subscriber observer path)
+            let reg = registry.clone();
+            let ingest_ns = namespace.clone();
+            let ingest_name = track_name.clone();
+            let ingest_session_id = self.session_id;
+            let ingest_reader = track_info.get_reader();
+            tokio::spawn(async move {
+                Self::run_ingest_observer(
+                    ingest_reader,
+                    reg,
+                    ingest_ns,
+                    ingest_name,
+                    track_alias,
+                    ingest_session_id,
+                )
+                .await;
+            });
+        }
+
         // Notify subscriber registry of the new PUBLISH
         // This will trigger forwarding to matching SUBSCRIBE_NAMESPACE subscriptions
         // Uses session_id for self-exclusion (don't notify the same session that sent the PUBLISH)
@@ -329,5 +388,64 @@ impl Consumer {
         }
 
         Ok(())
+    }
+
+    async fn run_ingest_observer(
+        reader: moq_transport::serve::TrackReader,
+        registry: SubscriberRegistry,
+        namespace: moq_transport::coding::TrackNamespace,
+        track_name: String,
+        track_alias: u64,
+        session_id: u64,
+    ) {
+        const AUDIO_LEVEL_EXT: u64 = 0x12;
+        let last_value = AtomicU64::new(u64::MAX);
+
+        let mode = match reader.mode().await {
+            Ok(mode) => mode,
+            Err(_) => return,
+        };
+
+        match mode {
+            moq_transport::serve::TrackReaderMode::Subgroups(mut subgroups) => {
+                while let Ok(Some(mut subgroup)) = subgroups.next().await {
+                    while let Ok(Some(object)) = subgroup.next().await {
+                        if let Some(kvp) = object.extension_headers.get(AUDIO_LEVEL_EXT) {
+                            if let moq_transport::coding::Value::IntValue(value) = kvp.value {
+                                if last_value.swap(value, Ordering::Relaxed) != value {
+                                    registry.update_track_value(
+                                        &namespace,
+                                        &track_name,
+                                        AUDIO_LEVEL_EXT,
+                                        value,
+                                        track_alias,
+                                        session_id,
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            moq_transport::serve::TrackReaderMode::Datagrams(mut datagrams) => {
+                while let Ok(Some(datagram)) = datagrams.read().await {
+                    if let Some(kvp) = datagram.extension_headers.get(AUDIO_LEVEL_EXT) {
+                        if let moq_transport::coding::Value::IntValue(value) = kvp.value {
+                            if last_value.swap(value, Ordering::Relaxed) != value {
+                                registry.update_track_value(
+                                    &namespace,
+                                    &track_name,
+                                    AUDIO_LEVEL_EXT,
+                                    value,
+                                    track_alias,
+                                    session_id,
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
     }
 }

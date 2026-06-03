@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
-use moq_auth::{AuthBlob, AuthHook, AuthzOperation, RequestContext, SessionContext};
+use moq_auth::{AuthBlob, AuthHook, AuthzOperation, RequestContext, SessionContext, Verdict};
 use moq_transport::{
     serve::{ServeError, TracksReader},
     session::{Publisher, SessionError, Subscribed, TrackStatusRequested},
@@ -135,17 +135,18 @@ impl Producer {
             &request_tokens
         };
         match self.auth_hook.on_request(&req_ctx, auth_tokens).await {
-            Ok(decision) if !decision.is_allowed() => {
-                let err = ServeError::not_found_ctx("unauthorized");
-                subscribed.close(err.clone())?;
-                return Err(err.into());
+            Ok(decision) => {
+                if let Verdict::Deny(reason) = decision.verdict {
+                    let err = ServeError::Closed(moq_auth_privacypass::error_code(&reason));
+                    subscribed.close(err.clone())?;
+                    return Err(err.into());
+                }
             }
             Err(e) => {
                 let err = ServeError::internal_ctx(format!("auth error: {e}"));
                 subscribed.close(err.clone())?;
                 return Err(err.into());
             }
-            _ => {}
         }
 
         // Check local tracks first, and serve from local if possible
@@ -224,16 +225,25 @@ impl Producer {
             },
             request_id: None,
         };
-        match self.auth_hook.on_request(&req_ctx, &self.auth_tokens).await {
-            Ok(decision) if !decision.is_allowed() => {
-                track_status_requested.respond_error(4, "unauthorized")?;
-                return Err(anyhow::anyhow!("unauthorized track_status"));
+        let request_tokens =
+            parse_auth_tokens_from_params(&track_status_requested.request_msg.params);
+        let auth_tokens = if request_tokens.is_empty() {
+            &self.auth_tokens
+        } else {
+            &request_tokens
+        };
+        match self.auth_hook.on_request(&req_ctx, auth_tokens).await {
+            Ok(decision) => {
+                if let Verdict::Deny(reason) = decision.verdict {
+                    track_status_requested
+                        .respond_error(moq_auth_privacypass::error_code(&reason), "unauthorized")?;
+                    return Err(anyhow::anyhow!("unauthorized track_status"));
+                }
             }
             Err(e) => {
                 track_status_requested.respond_error(4, "authorization error")?;
                 return Err(anyhow::anyhow!("auth hook error on track_status: {e}"));
             }
-            _ => {}
         }
 
         // Check local tracks first, and serve from local if possible

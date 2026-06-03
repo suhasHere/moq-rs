@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
-use moq_auth::{AuthBlob, AuthHook, AuthzOperation, RequestContext, SessionContext};
+use moq_auth::{AuthBlob, AuthHook, AuthzOperation, RequestContext, SessionContext, Verdict};
 use moq_transport::{
     serve::Tracks,
     session::{Announced, SessionError, Subscriber},
@@ -102,17 +102,21 @@ impl Consumer {
             &request_tokens
         };
         match self.auth_hook.on_request(&req_ctx, auth_tokens).await {
-            Ok(decision) if !decision.is_allowed() => {
-                metrics::counter!("moq_relay_announce_errors_total", "phase" => "auth")
-                    .increment(1);
-                return Err(anyhow::anyhow!("unauthorized publish_namespace"));
+            Ok(decision) => {
+                if let Verdict::Deny(reason) = decision.verdict {
+                    metrics::counter!("moq_relay_announce_errors_total", "phase" => "auth")
+                        .increment(1);
+                    announce.close(moq_transport::serve::ServeError::Closed(
+                        moq_auth_privacypass::error_code(&reason),
+                    ))?;
+                    return Err(anyhow::anyhow!("unauthorized publish_namespace"));
+                }
             }
             Err(e) => {
                 metrics::counter!("moq_relay_announce_errors_total", "phase" => "auth")
                     .increment(1);
                 return Err(anyhow::anyhow!("auth error: {e}"));
             }
-            _ => {}
         }
 
         let mut tasks = FuturesUnordered::new();

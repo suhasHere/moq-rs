@@ -308,33 +308,6 @@ impl Relay {
                                 peer: "0.0.0.0:0".parse().unwrap(),
                             };
 
-                            // Invoke auth hook at SETUP time.
-                            match auth_hook.on_setup(&session_ctx, &auth_tokens).await {
-                                Ok(decision) if decision.is_allowed() => {
-                                    tracing::debug!(
-                                        principal = ?decision.principal,
-                                        "auth on_setup: allowed"
-                                    );
-                                }
-                                Ok(decision) => {
-                                    tracing::info!(
-                                        verdict = ?decision.verdict,
-                                        "auth on_setup: denied, closing session"
-                                    );
-                                    raw_conn.close(0x2, "unauthorized");
-                                    metrics::counter!("moq_relay_connection_errors_total", "stage" => "auth_setup").increment(1);
-                                    metrics::counter!("moq_relay_connections_closed_total").increment(1);
-                                    return Ok(());
-                                }
-                                Err(err) => {
-                                    tracing::error!(error = %err, "auth hook on_setup failed");
-                                    raw_conn.close(0x2, "authorization error");
-                                    metrics::counter!("moq_relay_connection_errors_total", "stage" => "auth_setup").increment(1);
-                                    metrics::counter!("moq_relay_connections_closed_total").increment(1);
-                                    return Ok(());
-                                }
-                            }
-
                             // Resolve the connection path to a scope (identity + permissions).
                             // This translates the raw transport-level path into an application-level
                             // scope_id and determines what the connection is allowed to do.
@@ -371,6 +344,37 @@ impl Relay {
                                     permissions = ?info.permissions,
                                     "scope resolved"
                                 );
+                            }
+
+                            // Invoke auth hook at SETUP time after scope resolution.
+                            // Privacy Pass deployments commonly need the resolved scope to
+                            // select issuer keys and auth policy. The current hook context
+                            // still exposes the connection path; per-scope auth config can
+                            // be threaded here without changing request handling.
+                            match auth_hook.on_setup(&session_ctx, &auth_tokens).await {
+                                Ok(decision) if decision.is_allowed() => {
+                                    tracing::debug!(
+                                        principal = ?decision.principal,
+                                        "auth on_setup: allowed"
+                                    );
+                                }
+                                Ok(decision) => {
+                                    tracing::info!(
+                                        verdict = ?decision.verdict,
+                                        "auth on_setup: denied, closing session"
+                                    );
+                                    raw_conn.close(0x2, "unauthorized");
+                                    metrics::counter!("moq_relay_connection_errors_total", "stage" => "auth_setup").increment(1);
+                                    metrics::counter!("moq_relay_connections_closed_total").increment(1);
+                                    return Ok(());
+                                }
+                                Err(err) => {
+                                    tracing::error!(error = %err, "auth hook on_setup failed");
+                                    raw_conn.close(0x2, "authorization error");
+                                    metrics::counter!("moq_relay_connection_errors_total", "stage" => "auth_setup").increment(1);
+                                    metrics::counter!("moq_relay_connections_closed_total").increment(1);
+                                    return Ok(());
+                                }
                             }
 
                             // Gate Producer/Consumer creation on permissions.

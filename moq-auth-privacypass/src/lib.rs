@@ -8,6 +8,7 @@
 //! a single relay with in-memory replay protection.
 
 mod challenge;
+mod error;
 mod stores;
 mod token;
 mod wire;
@@ -20,6 +21,7 @@ use moq_auth::{AuthBlob, AuthDecision, AuthHook, DenyReason, RequestContext, Ses
 use privacypass::public_tokens::server::OriginServer;
 
 pub use challenge::{ChallengeRegistry, ChallengeScope, MatchRule, MoqAction};
+pub use error::*;
 pub use stores::{public_key_from_spki_der, PublicKeyStore, ReplayCache};
 pub use wire::{MoqAuthChallenge, MoqAuthChallengeError};
 

@@ -10,6 +10,7 @@
 mod challenge;
 mod stores;
 mod token;
+mod wire;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -20,6 +21,7 @@ use privacypass::public_tokens::server::OriginServer;
 
 pub use challenge::{ChallengeRegistry, ChallengeScope, MatchRule, MoqAction};
 pub use stores::{PublicKeyStore, ReplayCache};
+pub use wire::{MoqAuthChallenge, MoqAuthChallengeError};
 
 /// Outer MoQT auth token type used for Privacy Pass public tokens in the demo.
 pub const MOQ_AUTH_TOKEN_TYPE_PRIVACY_PASS_PUBLIC: u64 = 0x0002;

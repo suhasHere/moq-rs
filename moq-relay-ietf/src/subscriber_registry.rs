@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use moq_transport::coding::TrackNamespace;
@@ -64,6 +65,9 @@ pub struct PublishNamespaceNotification {
 #[derive(Clone)]
 pub struct SubscriberRegistry {
     inner: Arc<Mutex<SubscriberRegistryInner>>,
+    /// Shared version counter, bumped only on actual snapshot rebuild in update_track_value path.
+    /// Observers read this lock-free to detect when to recompute their cached top-N result.
+    snapshot_epoch: Arc<AtomicU64>,
 }
 
 struct SubscriberRegistryInner {
@@ -113,6 +117,7 @@ impl SubscriberRegistry {
                 subscription_published: HashMap::new(),
                 filter_groups: HashMap::new(),
             })),
+            snapshot_epoch: Arc::new(AtomicU64::new(0)),
         }
     }
 
@@ -293,16 +298,31 @@ impl SubscriberRegistry {
         };
 
         let tracker_key = (prefix.clone(), property_type);
+        let version_before = inner
+            .top_n_trackers
+            .get(&tracker_key)
+            .map(|t| t.snapshot_version())
+            .unwrap_or(0);
+
         if let Some(tracker) = inner.top_n_trackers.get(&tracker_key) {
             tracker.update_value(namespace, track_name, new_value);
         }
 
-        // Check membership change: did the top-N set actually change?
         let snapshot = inner
             .top_n_trackers
             .get(&tracker_key)
             .map(|t| t.load_snapshot());
         let Some(snapshot) = snapshot else { return 0 };
+
+        // Bump epoch only if snapshot was actually rebuilt
+        let version_after = inner
+            .top_n_trackers
+            .get(&tracker_key)
+            .map(|t| t.snapshot_version())
+            .unwrap_or(0);
+        if version_after != version_before {
+            self.snapshot_epoch.fetch_add(1, Ordering::Release);
+        }
 
         // Use filter group index to only iterate relevant subscribers
         let group_key = FilterGroupKey {
@@ -424,6 +444,12 @@ impl SubscriberRegistry {
         }
 
         false
+    }
+
+    /// Get the snapshot epoch handle (lock-free read for observers).
+    /// Observers cache this Arc and read it on every object to detect ranking changes.
+    pub fn snapshot_epoch(&self) -> Arc<AtomicU64> {
+        self.snapshot_epoch.clone()
     }
 
     /// Get the TRACK_FILTER configuration for a subscriber session

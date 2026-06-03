@@ -140,14 +140,16 @@ async fn serve_pp_challenge(
         }
     };
     let challenge = scope.token_challenge(issuer);
-    registry
-        .insert(
-            challenge
-                .digest()
-                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?,
-            scope,
-        )
-        .await;
+    let digest = challenge
+        .digest()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    registry.insert(digest, scope.clone()).await;
+    tracing::info!(
+        action = %query.action,
+        namespace = query.namespace.as_deref().unwrap_or(""),
+        scope = %scope.authorization_info(),
+        "issued Privacy Pass challenge"
+    );
     let reason = MoqAuthChallenge::new(vec![challenge.clone()])
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
         .encode_for_reason_phrase()

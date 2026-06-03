@@ -81,11 +81,12 @@ impl PrivacyPassAuthHook {
         })?;
 
         let challenge_digest = *token.challenge_digest();
+        let digest = digest_label(&challenge_digest);
         self.origin_server
             .redeem_token(self.public_keys.as_ref(), self.replay_cache.as_ref(), token)
             .await
             .map_err(|err| {
-                tracing::debug!(error = %err, "Privacy Pass token redemption failed");
+                tracing::info!(%digest, error = %err, "Privacy Pass token rejected");
                 match err {
                     privacypass::common::errors::RedeemTokenError::DoubleSpending => {
                         DenyReason::TokenReplayed
@@ -103,11 +104,22 @@ impl PrivacyPassAuthHook {
                 }
             })?;
 
-        self.challenges
+        let scope = self
+            .challenges
             .get(&challenge_digest)
             .await
-            .ok_or(DenyReason::ScopeMismatch)
+            .ok_or(DenyReason::ScopeMismatch)?;
+        tracing::info!(%digest, scope = %scope.authorization_info(), "Privacy Pass token redeemed");
+        Ok(scope)
     }
+}
+
+fn digest_label(digest: &[u8; 32]) -> String {
+    digest
+        .iter()
+        .take(8)
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }
 
 #[async_trait]
@@ -131,8 +143,10 @@ impl AuthHook for PrivacyPassAuthHook {
         };
 
         if scope.allows_setup() {
+            tracing::info!("Privacy Pass setup authorized");
             Ok(AuthDecision::allow())
         } else {
+            tracing::info!(scope = %scope.authorization_info(), "Privacy Pass setup scope mismatch");
             Ok(AuthDecision::deny(DenyReason::ScopeMismatch))
         }
     }
@@ -152,8 +166,10 @@ impl AuthHook for PrivacyPassAuthHook {
         };
 
         if scope.allows(&ctx.operation) {
+            tracing::info!(operation = ?ctx.operation, "Privacy Pass request authorized");
             Ok(AuthDecision::allow())
         } else {
+            tracing::info!(operation = ?ctx.operation, scope = %scope.authorization_info(), "Privacy Pass request scope mismatch");
             Ok(AuthDecision::deny(DenyReason::ScopeMismatch))
         }
     }

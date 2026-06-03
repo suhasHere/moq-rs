@@ -45,6 +45,7 @@ pub async fn token_params(
     namespace: &str,
     disable_verify: bool,
 ) -> anyhow::Result<KeyValuePairs> {
+    tracing::info!(%action, %namespace, "requesting Privacy Pass operation token");
     let token = mint_token(issuer, relay, action, namespace, disable_verify).await?;
     let mut params = KeyValuePairs::new();
     params.set_bytesvalue(
@@ -59,6 +60,7 @@ pub async fn setup_auth(
     relay: &Url,
     disable_verify: bool,
 ) -> anyhow::Result<Vec<u8>> {
+    tracing::info!("requesting Privacy Pass setup token");
     let token = mint_token(issuer, relay, "setup", "", disable_verify).await?;
     Ok(encode_auth_token(
         MOQ_AUTH_TOKEN_TYPE_PRIVACY_PASS_PUBLIC,
@@ -78,6 +80,7 @@ async fn mint_token(
         .build()?;
 
     let directory_url = issuer.join("/.well-known/private-token-issuer-directory")?;
+    tracing::info!(url = %directory_url, "fetching Privacy Pass issuer directory");
     let directory: IssuerDirectory = client
         .get(directory_url)
         .send()
@@ -90,6 +93,7 @@ async fn mint_token(
         .into_iter()
         .find(|key| key.token_type == moq_auth_privacypass::PRIVACY_PASS_PUBLIC_TOKEN_TYPE)
         .ok_or_else(|| anyhow::anyhow!("issuer has no public Privacy Pass token key"))?;
+    tracing::info!("selected Privacy Pass public token key");
     let key_der = URL_SAFE_NO_PAD.decode(key.token_key.as_bytes())?;
     let public_key = PublicKey::<Sha384, PSS, Deterministic>::from_spki(&key_der)
         .map_err(|e| anyhow::anyhow!("invalid issuer key: {e}"))?;
@@ -99,6 +103,7 @@ async fn mint_token(
         .query_pairs_mut()
         .append_pair("action", action)
         .append_pair("namespace", namespace);
+    tracing::info!(url = %challenge_url, "fetching MoQ Privacy Pass challenge");
     let challenge_response: ChallengeResponse = client
         .get(challenge_url)
         .send()
@@ -107,6 +112,7 @@ async fn mint_token(
         .json()
         .await?;
     let challenge = TokenChallenge::deserialize(&challenge_response.challenge)?;
+    tracing::info!("building Privacy Pass token request");
 
     let mut rng = rng();
     let (request, state) = TokenRequest::new(&mut rng, public_key, &challenge)?;
@@ -121,7 +127,10 @@ async fn mint_token(
         .error_for_status()?
         .bytes()
         .await?;
+    tracing::info!("received Privacy Pass token response");
     let response =
         privacypass::public_tokens::TokenResponse::tls_deserialize(&mut response_body.as_ref())?;
-    Ok(response.issue_token(&state)?.tls_serialize_detached()?)
+    let token = response.issue_token(&state)?.tls_serialize_detached()?;
+    tracing::info!(bytes = token.len(), "finalized Privacy Pass token");
+    Ok(token)
 }

@@ -441,12 +441,12 @@ impl Relay {
 
 /// Parse the raw AUTHORIZATION TOKEN parameter into AuthBlobs.
 ///
-/// For the initial implementation, we handle inline tokens (USE_VALUE, alias type 0x2)
+/// For the initial implementation, we handle inline tokens (USE_VALUE, alias type 0x3)
 /// which carry Token Type + Token Value directly. Alias-based token operations
 /// (REGISTER, USE_ALIAS, DELETE) are not yet supported.
 ///
 /// Wire format per token entry:
-///   Alias Type (vi64) = 0x2 (USE_VALUE)
+///   Alias Type (vi64) = 0x3 (USE_VALUE)
 ///   Token Type (vi64)
 ///   Token Value (bytes: length-prefixed)
 fn parse_auth_tokens(raw: &[u8]) -> Vec<AuthBlob> {
@@ -464,7 +464,7 @@ fn parse_auth_tokens(raw: &[u8]) -> Vec<AuthBlob> {
         };
 
         match alias_type.into_inner() {
-            0x2 => {
+            0x3 => {
                 let Ok(token_type) = VarInt::decode(&mut buf) else {
                     tracing::warn!("malformed auth token: missing token type");
                     break;

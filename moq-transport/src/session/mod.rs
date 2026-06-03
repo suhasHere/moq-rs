@@ -36,12 +36,12 @@ use crate::{message, setup};
 use std::path::PathBuf;
 
 /// Encode a single auth token into AUTHORIZATION TOKEN wire format.
-/// Uses USE_VALUE (alias type 0x2) with the given token_type and value.
+/// Uses USE_VALUE (alias type 0x3) with the given token_type and value.
 pub fn encode_auth_token(token_type: u64, token_value: &[u8]) -> Vec<u8> {
     use crate::coding::{Encode, VarInt};
 
     let mut buf = Vec::new();
-    VarInt::from_u32(0x2).encode(&mut buf).unwrap(); // USE_VALUE
+    VarInt::from_u32(0x3).encode(&mut buf).unwrap(); // USE_VALUE
     VarInt::try_from(token_type).unwrap().encode(&mut buf).unwrap();
     VarInt::try_from(token_value.len() as u64).unwrap().encode(&mut buf).unwrap();
     buf.extend_from_slice(token_value);

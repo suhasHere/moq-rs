@@ -205,7 +205,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // Build the auth hook if configured.
-    let auth_hook = build_auth_hook(&cli).await?;
+    let auth_config = build_auth_hook(&cli).await?;
 
     // Create a QUIC server for media.
     let relay = Relay::new(RelayConfig {
@@ -217,7 +217,7 @@ async fn main() -> anyhow::Result<()> {
         node: cli.node,
         announce: cli.announce,
         coordinator,
-        auth_hook,
+        auth_hook: auth_config.hook.clone(),
     })?;
 
     if cli.dev {
@@ -228,6 +228,8 @@ async fn main() -> anyhow::Result<()> {
             tls,
             qlog_dir: qlog_dir_for_web,
             mlog_dir: mlog_dir_for_web,
+            pp_challenges: auth_config.pp_challenges.clone(),
+            pp_issuer_name: auth_config.pp_issuer_name.clone(),
         });
 
         tokio::spawn(async move {
@@ -238,16 +240,26 @@ async fn main() -> anyhow::Result<()> {
     relay.run().await
 }
 
-async fn build_auth_hook(cli: &Cli) -> anyhow::Result<Option<Arc<dyn moq_auth::AuthHook>>> {
+struct AuthConfig {
+    hook: Option<Arc<dyn moq_auth::AuthHook>>,
+    pp_challenges: Option<Arc<moq_auth_privacypass::ChallengeRegistry>>,
+    pp_issuer_name: Option<String>,
+}
+
+async fn build_auth_hook(cli: &Cli) -> anyhow::Result<AuthConfig> {
     if cli.auth_shared_secret.is_some() && cli.auth_privacypass {
         anyhow::bail!("--auth-shared-secret and --auth-privacypass are mutually exclusive");
     }
 
     if let Some(ref secret) = cli.auth_shared_secret {
         tracing::info!("shared-secret auth enabled (token type 0)");
-        return Ok(Some(Arc::new(moq_auth::KeyValueAuthHook::new(
-            secret.as_bytes().to_vec(),
-        ))));
+        return Ok(AuthConfig {
+            hook: Some(Arc::new(moq_auth::KeyValueAuthHook::new(
+                secret.as_bytes().to_vec(),
+            ))),
+            pp_challenges: None,
+            pp_issuer_name: None,
+        });
     }
 
     if cli.auth_privacypass {
@@ -257,11 +269,20 @@ async fn build_auth_hook(cli: &Cli) -> anyhow::Result<Option<Arc<dyn moq_auth::A
             Duration::from_secs(cli.pp_challenge_ttl),
         )
         .with_setup_required(cli.pp_setup_required);
+        let challenges = hook.challenges();
         tracing::info!(issuer = %cli.pp_issuer, setup_required = cli.pp_setup_required, "Privacy Pass auth enabled");
-        return Ok(Some(Arc::new(hook)));
+        return Ok(AuthConfig {
+            hook: Some(Arc::new(hook)),
+            pp_challenges: Some(challenges),
+            pp_issuer_name: cli.pp_issuer.host_str().map(ToString::to_string),
+        });
     }
 
-    Ok(None)
+    Ok(AuthConfig {
+        hook: None,
+        pp_challenges: None,
+        pp_issuer_name: None,
+    })
 }
 
 #[derive(Debug, Deserialize)]

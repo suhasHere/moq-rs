@@ -18,6 +18,7 @@ categories = ["multimedia", "network-programming", "web-programming"]
 
 [dependencies]
 moq-native-ietf = { path = "../moq-native-ietf", version = "0.8" }
+moq-auth-privacypass = { path = "../moq-auth-privacypass", version = "0.1" }
 moq-transport = { path = "../moq-transport", version = "0.14" }
 
 # QUIC
@@ -25,6 +26,12 @@ url = "2"
 
 # Async stuff
 tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+tls_codec = "0.4.2"
+privacypass = { git = "https://github.com/raphaelrobert/privacypass", rev = "48296d412e9d6e4b9b3a6a9f747e39bce253fcfb" }
+blind-rsa-signatures = "0.17"
+base64 = "0.22"
 
 # CLI, logging, error handling
 clap = { version = "4", features = ["derive"] }

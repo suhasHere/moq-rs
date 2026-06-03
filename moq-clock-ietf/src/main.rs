@@ -7,14 +7,15 @@ use anyhow::Context;
 
 mod cli;
 mod clock;
+mod privacypass;
 
 use clap::Parser;
 use cli::Cli;
 
 use moq_transport::{
-    coding::TrackNamespace,
+    coding::{KeyValuePairs, TrackNamespace},
     serve,
-    session::{Publisher, Subscriber, encode_auth_token},
+    session::{encode_auth_token, Publisher, Subscriber},
 };
 
 /// The main entry point for the MoQ Clock IETF example.
@@ -47,7 +48,24 @@ async fn main() -> anyhow::Result<()> {
 
     let auth_raw = match &config.auth_token {
         Some(token) => encode_auth_token(config.auth_token_type, token.as_bytes()),
+        None if config.pp_issuer.is_some() => {
+            let issuer = config.pp_issuer.as_ref().unwrap();
+            let relay = config.pp_relay.as_ref().unwrap_or(&config.url);
+            privacypass::setup_auth(issuer, relay).await?
+        }
         None => vec![],
+    };
+
+    let request_params = if let Some(issuer) = &config.pp_issuer {
+        let relay = config.pp_relay.as_ref().unwrap_or(&config.url);
+        let action = if config.publish {
+            "publish"
+        } else {
+            "subscribe"
+        };
+        privacypass::token_params(issuer, relay, action, &config.namespace).await?
+    } else {
+        KeyValuePairs::default()
     };
 
     // Depending on whether we are publishing or subscribing, create the appropriate session
@@ -71,7 +89,7 @@ async fn main() -> anyhow::Result<()> {
             tokio::select! {
                 res = session.run() => res.context("session error")?,
                 res = clock_publisher.run() => res.context("clock error")?,
-                res = publisher.announce(tracks_reader) => res.context("failed to serve tracks")?,
+                res = publisher.announce_with_params(tracks_reader, request_params) => res.context("failed to serve tracks")?,
             }
         } else {
             tracing::info!("publishing clock via streams");
@@ -87,7 +105,7 @@ async fn main() -> anyhow::Result<()> {
             tokio::select! {
                 res = session.run() => res.context("session error")?,
                 res = clock_publisher.run() => res.context("clock error")?,
-                res = publisher.announce(tracks_reader) => res.context("failed to serve tracks")?,
+                res = publisher.announce_with_params(tracks_reader, request_params) => res.context("failed to serve tracks")?,
             }
         }
     } else {
@@ -111,7 +129,7 @@ async fn main() -> anyhow::Result<()> {
         tokio::select! {
             res = session.run() => res.context("session error")?,
             res = clock_subscriber.run() => res.context("clock error")?,
-            res = subscriber.subscribe(track_writer) => res.context("failed to subscribe to track")?,
+            res = subscriber.subscribe_with_params(track_writer, request_params) => res.context("failed to subscribe to track")?,
         }
     }
 

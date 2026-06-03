@@ -1737,10 +1737,17 @@ name = "moq-clock-ietf"
 version = "0.6.14"
 dependencies = [
  "anyhow",
+ "base64",
+ "blind-rsa-signatures",
  "chrono",
  "clap",
+ "moq-auth-privacypass",
  "moq-native-ietf",
  "moq-transport",
+ "privacypass",
+ "reqwest",
+ "serde",
+ "tls_codec",
  "tokio",
  "tracing",
  "tracing-subscriber",

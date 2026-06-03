@@ -47,4 +47,12 @@ pub struct Cli {
     /// Token type identifier for the auth token (e.g. C4M=6501485, PrivacyPass=0, shared-secret).
     #[arg(long, default_value = "6501485")]
     pub auth_token_type: u64,
+
+    /// Fetch and present Privacy Pass tokens from this issuer URL.
+    #[arg(long)]
+    pub pp_issuer: Option<Url>,
+
+    /// Relay HTTPS URL used to fetch /pp/challenge. Defaults to the MoQ URL.
+    #[arg(long)]
+    pub pp_relay: Option<Url>,
 }

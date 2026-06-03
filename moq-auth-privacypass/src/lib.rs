@@ -58,6 +58,10 @@ impl PrivacyPassAuthHook {
         self
     }
 
+    pub fn challenges(&self) -> Arc<ChallengeRegistry> {
+        self.challenges.clone()
+    }
+
     pub fn demo(public_keys: Arc<PublicKeyStore>, challenge_ttl: Duration) -> Self {
         Self::new(public_keys, Arc::new(ChallengeRegistry::new(challenge_ttl)))
     }

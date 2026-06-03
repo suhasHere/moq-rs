@@ -51,7 +51,7 @@ async fn main() -> anyhow::Result<()> {
         None if config.pp_issuer.is_some() => {
             let issuer = config.pp_issuer.as_ref().unwrap();
             let relay = config.pp_relay.as_ref().unwrap_or(&config.url);
-            privacypass::setup_auth(issuer, relay).await?
+            privacypass::setup_auth(issuer, relay, config.tls.disable_verify).await?
         }
         None => vec![],
     };
@@ -63,7 +63,14 @@ async fn main() -> anyhow::Result<()> {
         } else {
             "subscribe"
         };
-        privacypass::token_params(issuer, relay, action, &config.namespace).await?
+        privacypass::token_params(
+            issuer,
+            relay,
+            action,
+            &config.namespace,
+            config.tls.disable_verify,
+        )
+        .await?
     } else {
         KeyValuePairs::default()
     };

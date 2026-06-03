@@ -9,6 +9,7 @@ use moq_transport::coding::KeyValuePairs;
 use moq_transport::session::encode_auth_token;
 use privacypass::auth::authenticate::TokenChallenge;
 use privacypass::public_tokens::TokenRequest;
+use reqwest::header::{ACCEPT, CONTENT_TYPE};
 use serde::Deserialize;
 use tls_codec::{Deserialize as _, Serialize as _};
 use url::Url;
@@ -34,13 +35,17 @@ struct ChallengeResponse {
     challenge: Vec<u8>,
 }
 
+const TOKEN_REQUEST: &str = "application/private-token-request";
+const TOKEN_RESPONSE: &str = "application/private-token-response";
+
 pub async fn token_params(
     issuer: &Url,
     relay: &Url,
     action: &str,
     namespace: &str,
+    disable_verify: bool,
 ) -> anyhow::Result<KeyValuePairs> {
-    let token = mint_token(issuer, relay, action, namespace).await?;
+    let token = mint_token(issuer, relay, action, namespace, disable_verify).await?;
     let mut params = KeyValuePairs::new();
     params.set_bytesvalue(
         moq_transport::setup::ParameterType::AuthorizationToken.into(),
@@ -49,8 +54,12 @@ pub async fn token_params(
     Ok(params)
 }
 
-pub async fn setup_auth(issuer: &Url, relay: &Url) -> anyhow::Result<Vec<u8>> {
-    let token = mint_token(issuer, relay, "setup", "").await?;
+pub async fn setup_auth(
+    issuer: &Url,
+    relay: &Url,
+    disable_verify: bool,
+) -> anyhow::Result<Vec<u8>> {
+    let token = mint_token(issuer, relay, "setup", "", disable_verify).await?;
     Ok(encode_auth_token(
         MOQ_AUTH_TOKEN_TYPE_PRIVACY_PASS_PUBLIC,
         &token,
@@ -62,9 +71,16 @@ async fn mint_token(
     relay: &Url,
     action: &str,
     namespace: &str,
+    disable_verify: bool,
 ) -> anyhow::Result<Vec<u8>> {
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(disable_verify)
+        .build()?;
+
     let directory_url = issuer.join("/.well-known/private-token-issuer-directory")?;
-    let directory: IssuerDirectory = reqwest::get(directory_url)
+    let directory: IssuerDirectory = client
+        .get(directory_url)
+        .send()
         .await?
         .error_for_status()?
         .json()
@@ -83,7 +99,9 @@ async fn mint_token(
         .query_pairs_mut()
         .append_pair("action", action)
         .append_pair("namespace", namespace);
-    let challenge_response: ChallengeResponse = reqwest::get(challenge_url)
+    let challenge_response: ChallengeResponse = client
+        .get(challenge_url)
+        .send()
         .await?
         .error_for_status()?
         .json()
@@ -93,8 +111,10 @@ async fn mint_token(
     let mut rng = rng();
     let (request, state) = TokenRequest::new(&mut rng, public_key, &challenge)?;
     let request_body = request.tls_serialize_detached()?;
-    let response_body = reqwest::Client::new()
+    let response_body = client
         .post(issuer.join(&directory.request_uri)?)
+        .header(CONTENT_TYPE, TOKEN_REQUEST)
+        .header(ACCEPT, TOKEN_RESPONSE)
         .body(request_body)
         .send()
         .await?

@@ -97,11 +97,13 @@ impl Consumer {
         };
         match self.auth_hook.on_request(&req_ctx, &self.auth_tokens).await {
             Ok(decision) if !decision.is_allowed() => {
-                metrics::counter!("moq_relay_announce_errors_total", "phase" => "auth").increment(1);
+                metrics::counter!("moq_relay_announce_errors_total", "phase" => "auth")
+                    .increment(1);
                 return Err(anyhow::anyhow!("unauthorized publish_namespace"));
             }
             Err(e) => {
-                metrics::counter!("moq_relay_announce_errors_total", "phase" => "auth").increment(1);
+                metrics::counter!("moq_relay_announce_errors_total", "phase" => "auth")
+                    .increment(1);
                 return Err(anyhow::anyhow!("auth error: {e}"));
             }
             _ => {}

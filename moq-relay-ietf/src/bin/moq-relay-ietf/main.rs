@@ -5,9 +5,12 @@ mod api_coordinator;
 mod file_coordinator;
 
 use std::sync::Arc;
+use std::time::Duration;
 use std::{net, path::PathBuf};
 
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use clap::Parser;
+use serde::Deserialize;
 use url::Url;
 
 use api_coordinator::{ApiCoordinator, ApiCoordinatorConfig};
@@ -93,6 +96,21 @@ pub struct Cli {
     #[arg(long, env = "MOQ_AUTH_SHARED_SECRET")]
     pub auth_shared_secret: Option<String>,
 
+    /// Enable Privacy Pass public token auth using issuer directory keys.
+    #[arg(long)]
+    pub auth_privacypass: bool,
+
+    /// Privacy Pass issuer base URL.
+    #[arg(long, default_value = "https://demo-pat.issuer.cloudflare.com")]
+    pub pp_issuer: Url,
+
+    /// Require Privacy Pass during SETUP, not only operation requests.
+    #[arg(long, default_value_t = false)]
+    pub pp_setup_required: bool,
+
+    /// Privacy Pass challenge TTL in seconds.
+    #[arg(long, default_value_t = 300)]
+    pub pp_challenge_ttl: u64,
 }
 
 #[tokio::main]
@@ -187,7 +205,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // Build the auth hook if configured.
-    let auth_hook = build_auth_hook(&cli)?;
+    let auth_hook = build_auth_hook(&cli).await?;
 
     // Create a QUIC server for media.
     let relay = Relay::new(RelayConfig {
@@ -220,12 +238,72 @@ async fn main() -> anyhow::Result<()> {
     relay.run().await
 }
 
-fn build_auth_hook(cli: &Cli) -> anyhow::Result<Option<Arc<dyn moq_auth::AuthHook>>> {
+async fn build_auth_hook(cli: &Cli) -> anyhow::Result<Option<Arc<dyn moq_auth::AuthHook>>> {
+    if cli.auth_shared_secret.is_some() && cli.auth_privacypass {
+        anyhow::bail!("--auth-shared-secret and --auth-privacypass are mutually exclusive");
+    }
+
     if let Some(ref secret) = cli.auth_shared_secret {
         tracing::info!("shared-secret auth enabled (token type 0)");
         return Ok(Some(Arc::new(moq_auth::KeyValueAuthHook::new(
             secret.as_bytes().to_vec(),
         ))));
     }
+
+    if cli.auth_privacypass {
+        let public_keys = load_privacypass_public_keys(cli.pp_issuer.clone()).await?;
+        let hook = moq_auth_privacypass::PrivacyPassAuthHook::demo(
+            public_keys,
+            Duration::from_secs(cli.pp_challenge_ttl),
+        )
+        .with_setup_required(cli.pp_setup_required);
+        tracing::info!(issuer = %cli.pp_issuer, setup_required = cli.pp_setup_required, "Privacy Pass auth enabled");
+        return Ok(Some(Arc::new(hook)));
+    }
+
     Ok(None)
+}
+
+#[derive(Debug, Deserialize)]
+struct IssuerDirectory {
+    #[serde(rename = "token-keys")]
+    token_keys: Vec<IssuerTokenKey>,
+}
+
+#[derive(Debug, Deserialize)]
+struct IssuerTokenKey {
+    #[serde(rename = "token-type")]
+    token_type: u16,
+    #[serde(rename = "token-key")]
+    token_key: String,
+}
+
+async fn load_privacypass_public_keys(
+    issuer: Url,
+) -> anyhow::Result<Arc<moq_auth_privacypass::PublicKeyStore>> {
+    let directory_url = issuer.join("/.well-known/private-token-issuer-directory")?;
+    let directory: IssuerDirectory = reqwest::get(directory_url.clone())
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+
+    let store = Arc::new(moq_auth_privacypass::PublicKeyStore::default());
+    let mut loaded = 0usize;
+    for key in directory.token_keys {
+        if key.token_type != moq_auth_privacypass::PRIVACY_PASS_PUBLIC_TOKEN_TYPE {
+            continue;
+        }
+        let der = URL_SAFE_NO_PAD.decode(key.token_key.as_bytes())?;
+        let public_key = moq_auth_privacypass::public_key_from_spki_der(&der)?;
+        store.insert_public_key(public_key).await?;
+        loaded += 1;
+    }
+
+    if loaded == 0 {
+        anyhow::bail!("issuer directory did not contain Privacy Pass public token keys");
+    }
+
+    tracing::info!(issuer = %issuer, keys = loaded, "loaded Privacy Pass issuer keys");
+    Ok(store)
 }

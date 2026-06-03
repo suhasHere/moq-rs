@@ -20,7 +20,7 @@ use moq_auth::{AuthBlob, AuthDecision, AuthHook, DenyReason, RequestContext, Ses
 use privacypass::public_tokens::server::OriginServer;
 
 pub use challenge::{ChallengeRegistry, ChallengeScope, MatchRule, MoqAction};
-pub use stores::{PublicKeyStore, ReplayCache};
+pub use stores::{public_key_from_spki_der, PublicKeyStore, ReplayCache};
 pub use wire::{MoqAuthChallenge, MoqAuthChallengeError};
 
 /// Outer MoQT auth token type used for Privacy Pass public tokens in the demo.

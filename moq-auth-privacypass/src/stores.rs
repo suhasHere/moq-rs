@@ -4,6 +4,7 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
+use blind_rsa_signatures::{Deterministic, Sha384, PSS};
 use privacypass::public_tokens::server::OriginKeyStore;
 use privacypass::public_tokens::{public_key_to_truncated_token_key_id, PublicKey};
 use privacypass::{Nonce, NonceStore, TruncatedTokenKeyId};
@@ -12,6 +13,11 @@ use tokio::sync::Mutex;
 #[derive(Debug, Default)]
 pub struct PublicKeyStore {
     keys: Mutex<HashMap<TruncatedTokenKeyId, Vec<PublicKey>>>,
+}
+
+pub fn public_key_from_spki_der(bytes: &[u8]) -> Result<PublicKey, StoreError> {
+    blind_rsa_signatures::PublicKey::<Sha384, PSS, Deterministic>::from_spki(bytes)
+        .map_err(|_| StoreError::InvalidPublicKey)
 }
 
 impl PublicKeyStore {

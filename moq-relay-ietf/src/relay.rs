@@ -459,7 +459,10 @@ fn parse_auth_tokens(raw: &[u8]) -> Vec<AuthBlob> {
 
     while buf.has_remaining() {
         let Ok(alias_type) = VarInt::decode(&mut buf) else {
-            tracing::warn!(remaining = buf.remaining(), "malformed auth token parameter, truncating");
+            tracing::warn!(
+                remaining = buf.remaining(),
+                "malformed auth token parameter, truncating"
+            );
             break;
         };
 
@@ -475,7 +478,11 @@ fn parse_auth_tokens(raw: &[u8]) -> Vec<AuthBlob> {
                 };
                 let token_len: usize = token_len.into();
                 if buf.remaining() < token_len {
-                    tracing::warn!(expected = token_len, actual = buf.remaining(), "malformed auth token: truncated value");
+                    tracing::warn!(
+                        expected = token_len,
+                        actual = buf.remaining(),
+                        "malformed auth token: truncated value"
+                    );
                     break;
                 }
                 let token_value = buf.copy_to_bytes(token_len);
@@ -485,7 +492,10 @@ fn parse_auth_tokens(raw: &[u8]) -> Vec<AuthBlob> {
                 });
             }
             other => {
-                tracing::debug!(alias_type = other, "skipping unsupported auth token alias type");
+                tracing::debug!(
+                    alias_type = other,
+                    "skipping unsupported auth token alias type"
+                );
                 break;
             }
         }

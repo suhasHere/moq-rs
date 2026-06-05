@@ -318,7 +318,7 @@ impl Subscriber {
     }
 
     /// Remove an announced namespace from our map of active announces.
-    fn drop_publish_namespace(&mut self, namespace: &TrackNamespace) {
+    pub(super) fn drop_publish_namespace(&mut self, namespace: &TrackNamespace) {
         self.announced.lock().unwrap().remove(namespace);
     }
 

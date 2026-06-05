@@ -109,6 +109,7 @@ impl Drop for Announced {
                 reason_phrase: ReasonPhrase::text(err.reason()),
             });
         }
+        self.session.drop_publish_namespace(&self.info.namespace);
     }
 }
 

@@ -1747,6 +1747,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "base64",
  "blind-rsa-signatures",
  "bytes",
  "moq-auth",
@@ -3835,7 +3836,8 @@ dependencies = [
 [[package]]
 name = "web-transport"
 version = "0.10.5"
-source = "git+https://github.com/thibmeu/web-transport?rev=6fd255b6f3d3a5ba8924fb11ea0004473d907c8f#6fd255b6f3d3a5ba8924fb11ea0004473d907c8f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "775e386f3db081399971a99a532f67c3d4231eedd541523098db24f031bcdc20"
 dependencies = [
  "bytes",
  "thiserror 2.0.17",
@@ -3847,7 +3849,8 @@ dependencies = [
 [[package]]
 name = "web-transport-proto"
 version = "0.6.0"
-source = "git+https://github.com/thibmeu/web-transport?rev=6fd255b6f3d3a5ba8924fb11ea0004473d907c8f#6fd255b6f3d3a5ba8924fb11ea0004473d907c8f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0225d295c8ac00a2e9a498aefeaf3f3c6186da12a251c938189b15b82ea22808"
 dependencies = [
  "bytes",
  "http",
@@ -3860,7 +3863,8 @@ dependencies = [
 [[package]]
 name = "web-transport-quinn"
 version = "0.11.9"
-source = "git+https://github.com/thibmeu/web-transport?rev=6fd255b6f3d3a5ba8924fb11ea0004473d907c8f#6fd255b6f3d3a5ba8924fb11ea0004473d907c8f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cac11b6caf163be7f980442a26fcba15e8074a5f22e85fbb71f0f77d11cecf60"
 dependencies = [
  "bytes",
  "futures",
@@ -3879,7 +3883,8 @@ dependencies = [
 [[package]]
 name = "web-transport-trait"
 version = "0.3.5"
-source = "git+https://github.com/thibmeu/web-transport?rev=6fd255b6f3d3a5ba8924fb11ea0004473d907c8f#6fd255b6f3d3a5ba8924fb11ea0004473d907c8f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc5f83d19cf6c8ba147f4e1e5935a8a115c91f6abbf714d740a83b967d558e6e"
 dependencies = [
  "bytes",
 ]
@@ -3887,7 +3892,8 @@ dependencies = [
 [[package]]
 name = "web-transport-wasm"
 version = "0.5.7"
-source = "git+https://github.com/thibmeu/web-transport?rev=6fd255b6f3d3a5ba8924fb11ea0004473d907c8f#6fd255b6f3d3a5ba8924fb11ea0004473d907c8f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ee22c228309b45651038d975a9f3c041525e9f2cc0f6c3bd8753a110804df11"
 dependencies = [
  "bytes",
  "js-sys",

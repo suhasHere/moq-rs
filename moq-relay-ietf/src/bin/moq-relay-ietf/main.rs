@@ -245,7 +245,7 @@ struct AuthConfig {
     hook: Option<Arc<dyn moq_auth::AuthHook>>,
     pp_challenges: Option<Arc<moq_auth_privacypass::ChallengeRegistry>>,
     pp_issuer_name: Option<String>,
-    pp_setup_challenge_reason: Option<Vec<u8>>,
+    pp_setup_challenge_reason: Option<String>,
 }
 
 async fn build_auth_hook(cli: &Cli) -> anyhow::Result<AuthConfig> {

@@ -1,14 +1,16 @@
 // SPDX-FileCopyrightText: 2024-2026 Cloudflare Inc. and contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use privacypass::auth::authenticate::TokenChallenge;
 use tls_codec::{Deserialize, Serialize, TlsByteVecU16};
 
 use crate::ChallengeScope;
 
-pub fn setup_challenge_reason(issuer_name: &str) -> Result<Vec<u8>, MoqAuthChallengeError> {
-    MoqAuthChallenge::new(vec![ChallengeScope::setup().token_challenge(issuer_name)])?
-        .encode_for_reason_phrase()
+pub fn setup_challenge_reason(issuer_name: &str) -> Result<String, MoqAuthChallengeError> {
+    let bytes = MoqAuthChallenge::new(vec![ChallengeScope::setup().token_challenge(issuer_name)])?
+        .encode_for_reason_phrase()?;
+    Ok(URL_SAFE_NO_PAD.encode(bytes))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

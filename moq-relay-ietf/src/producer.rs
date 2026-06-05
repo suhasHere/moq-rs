@@ -12,7 +12,7 @@ use moq_transport::{
 
 use crate::{
     metrics::{GaugeGuard, TimingGuard},
-    parse_auth_tokens_from_params, Locals, RemoteManager,
+    parse_auth_tokens_from_params, Locals, PrivacyPassChallengeConfig, RemoteManager,
 };
 
 /// Producer of tracks to a remote Subscriber
@@ -28,6 +28,7 @@ pub struct Producer {
     auth_hook: Arc<dyn AuthHook>,
     session_ctx: SessionContext,
     auth_tokens: Vec<AuthBlob>,
+    pp_challenges: Option<PrivacyPassChallengeConfig>,
 }
 
 impl Producer {
@@ -39,6 +40,7 @@ impl Producer {
         auth_hook: Arc<dyn AuthHook>,
         session_ctx: SessionContext,
         auth_tokens: Vec<AuthBlob>,
+        pp_challenges: Option<PrivacyPassChallengeConfig>,
     ) -> Self {
         Self {
             publisher,
@@ -48,6 +50,7 @@ impl Producer {
             auth_hook,
             session_ctx,
             auth_tokens,
+            pp_challenges,
         }
     }
 
@@ -129,7 +132,7 @@ impl Producer {
             request_id: None,
         };
         let request_tokens = parse_auth_tokens_from_params(&subscribed.info.params);
-        let auth_tokens = if request_tokens.is_empty() {
+        let auth_tokens = if request_tokens.is_empty() && self.pp_challenges.is_none() {
             &self.auth_tokens
         } else {
             &request_tokens
@@ -137,7 +140,22 @@ impl Producer {
         match self.auth_hook.on_request(&req_ctx, auth_tokens).await {
             Ok(decision) => {
                 if let Verdict::Deny(reason) = decision.verdict {
-                    let err = ServeError::Closed(moq_auth_privacypass::error_code(&reason));
+                    let code = moq_auth_privacypass::error_code(&reason);
+                    let err = if let Some(challenges) = &self.pp_challenges {
+                        let scope =
+                            moq_auth_privacypass::ChallengeScope::subscribe_namespace_prefix(
+                                &namespace,
+                            );
+                        let reason = moq_auth_privacypass::challenge_reason_for_scope(
+                            challenges.registry.as_ref(),
+                            &challenges.issuer_name,
+                            scope,
+                        )
+                        .await?;
+                        ServeError::ClosedWithReason { code, reason }
+                    } else {
+                        ServeError::Closed(code)
+                    };
                     subscribed.close(err.clone())?;
                     return Err(err.into());
                 }
@@ -227,7 +245,7 @@ impl Producer {
         };
         let request_tokens =
             parse_auth_tokens_from_params(&track_status_requested.request_msg.params);
-        let auth_tokens = if request_tokens.is_empty() {
+        let auth_tokens = if request_tokens.is_empty() && self.pp_challenges.is_none() {
             &self.auth_tokens
         } else {
             &request_tokens

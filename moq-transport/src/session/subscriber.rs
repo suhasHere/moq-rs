@@ -291,7 +291,10 @@ impl Subscriber {
     /// Handle the reception of a SubscribeError message from the publisher.
     fn recv_subscribe_error(&mut self, msg: &message::SubscribeError) -> Result<(), SessionError> {
         if let Some(subscribe) = self.remove_subscribe(msg.id) {
-            subscribe.error(ServeError::Closed(msg.error_code))?;
+            subscribe.error(ServeError::ClosedWithReason {
+                code: msg.error_code,
+                reason: msg.reason_phrase.as_lossy_str().into_owned(),
+            })?;
         }
 
         Ok(())

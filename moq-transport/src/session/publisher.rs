@@ -323,7 +323,10 @@ impl Publisher {
         if let Some(key) = key_opt {
             if let Some((_ns, v)) = announces.remove_entry(&key) {
                 // Step 3: call recv_error, consuming v
-                v.recv_error(ServeError::Closed(msg.error_code))?;
+                v.recv_error(ServeError::ClosedWithReason {
+                    code: msg.error_code,
+                    reason: msg.reason_phrase.as_lossy_str().into_owned(),
+                })?;
             }
         }
 

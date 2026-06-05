@@ -31,30 +31,8 @@ struct IssuerTokenKey {
     token_key: String,
 }
 
-#[derive(Debug, Deserialize)]
-struct ChallengeResponse {
-    challenge: Vec<u8>,
-}
-
 const TOKEN_REQUEST: &str = "application/private-token-request";
 const TOKEN_RESPONSE: &str = "application/private-token-response";
-
-pub async fn token_params(
-    issuer: &Url,
-    relay: &Url,
-    action: &str,
-    namespace: &str,
-    disable_verify: bool,
-) -> anyhow::Result<KeyValuePairs> {
-    tracing::info!(%action, %namespace, "requesting Privacy Pass operation token");
-    let token = mint_token(issuer, relay, action, namespace, disable_verify).await?;
-    let mut params = KeyValuePairs::new();
-    params.set_bytesvalue(
-        moq_transport::setup::ParameterType::AuthorizationToken.into(),
-        encode_auth_token(MOQ_AUTH_TOKEN_TYPE_PRIVACY_PASS_PUBLIC, &token),
-    );
-    Ok(params)
-}
 
 pub async fn setup_auth_from_error(
     issuer: &Url,
@@ -76,43 +54,26 @@ pub async fn setup_auth_from_error(
     )))
 }
 
-async fn mint_token(
+pub async fn token_params_from_error(
     issuer: &Url,
-    relay: &Url,
-    action: &str,
-    namespace: &str,
+    err: &moq_transport::serve::ServeError,
     disable_verify: bool,
-) -> anyhow::Result<Vec<u8>> {
-    let client = reqwest::Client::builder()
-        .danger_accept_invalid_certs(disable_verify)
-        .build()?;
-
-    let directory_url = issuer.join("/.well-known/private-token-issuer-directory")?;
-    tracing::info!(url = %directory_url, "fetching Privacy Pass issuer directory");
-    let directory: IssuerDirectory = client
-        .get(directory_url)
-        .send()
-        .await?
-        .error_for_status()?
-        .json()
-        .await?;
-    let mut challenge_url = relay.join("/pp/challenge")?;
-    challenge_url
-        .query_pairs_mut()
-        .append_pair("action", action)
-        .append_pair("namespace", namespace);
-    tracing::info!(url = %challenge_url, "fetching MoQ Privacy Pass challenge");
-    let challenge_response: ChallengeResponse = client
-        .get(challenge_url)
-        .send()
-        .await?
-        .error_for_status()?
-        .json()
-        .await?;
-    let challenge = TokenChallenge::deserialize(&challenge_response.challenge)?;
-    tracing::info!("building Privacy Pass token request");
-
-    mint_token_for_challenge_with_directory(issuer, &directory, &challenge, &client).await
+) -> anyhow::Result<Option<KeyValuePairs>> {
+    let moq_transport::serve::ServeError::ClosedWithReason { reason, .. } = err else {
+        return Ok(None);
+    };
+    let challenge = moq_auth_privacypass::decode_base64_reason(reason)?;
+    let Some(token_challenge) = challenge.challenges().first() else {
+        return Ok(None);
+    };
+    tracing::info!("minting Privacy Pass request token from MoQ error challenge");
+    let token = mint_token_for_challenge(issuer, token_challenge, disable_verify).await?;
+    let mut params = KeyValuePairs::new();
+    params.set_bytesvalue(
+        moq_transport::setup::ParameterType::AuthorizationToken.into(),
+        encode_auth_token(MOQ_AUTH_TOKEN_TYPE_PRIVACY_PASS_PUBLIC, &token),
+    );
+    Ok(Some(params))
 }
 
 async fn mint_token_for_challenge(

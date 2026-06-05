@@ -14,6 +14,12 @@ use moq_transport::coding::{Decode, KeyValuePairs, Value, VarInt};
 
 use crate::{metrics::GaugeGuard, Consumer, Coordinator, Locals, Producer, RemoteManager, Session};
 
+#[derive(Clone)]
+pub struct PrivacyPassChallengeConfig {
+    pub registry: Arc<moq_auth_privacypass::ChallengeRegistry>,
+    pub issuer_name: String,
+}
+
 // A type alias for boxed future
 type ServerFuture = Pin<
     Box<
@@ -62,6 +68,8 @@ pub struct RelayConfig {
 
     /// Reason text to use when setup authorization fails.
     pub auth_setup_challenge_reason: Option<String>,
+
+    pub pp_challenges: Option<PrivacyPassChallengeConfig>,
 }
 
 /// MoQ Relay server.
@@ -74,6 +82,7 @@ pub struct Relay {
     coordinator: Arc<dyn Coordinator>,
     auth_hook: Arc<dyn AuthHook>,
     auth_setup_challenge_reason: Option<String>,
+    pp_challenges: Option<PrivacyPassChallengeConfig>,
 }
 
 impl Relay {
@@ -132,6 +141,7 @@ impl Relay {
             coordinator: config.coordinator,
             auth_hook,
             auth_setup_challenge_reason: config.auth_setup_challenge_reason,
+            pp_challenges: config.pp_challenges,
         })
     }
 
@@ -146,6 +156,7 @@ impl Relay {
             coordinator,
             auth_hook,
             auth_setup_challenge_reason,
+            pp_challenges,
         } = self;
 
         let run_result = async {
@@ -206,6 +217,7 @@ impl Relay {
                         forward_auth.clone(),
                         forward_ctx.clone(),
                         vec![],
+                        None,
                     )),
                     consumer: Some(Consumer::new(
                         subscriber,
@@ -216,6 +228,7 @@ impl Relay {
                         forward_auth,
                         forward_ctx,
                         vec![],
+                        None,
                     )),
                     // Forward connections are always full read-write relay peers,
                     // so no reject loops needed.
@@ -280,6 +293,7 @@ impl Relay {
                         let coordinator = coordinator.clone();
                         let auth_hook = auth_hook.clone();
                         let auth_setup_challenge_reason = auth_setup_challenge_reason.clone();
+                        let pp_challenges = pp_challenges.clone();
 
                         // Spawn a new task to handle the connection
                         tasks.push(async move {
@@ -403,6 +417,7 @@ impl Relay {
                                     return Ok(());
                                 }
                             };
+                            tracing::info!("MoQ SERVER_SETUP sent after setup auth");
 
                             // Gate Producer/Consumer creation on permissions.
                             // Note the intentional inversion:
@@ -416,6 +431,7 @@ impl Relay {
                                 (publisher.map(|publisher| Producer::new(
                                     publisher, locals.clone(), remotes, scope_id.clone(),
                                     auth_hook.clone(), session_ctx.clone(), auth_tokens.clone(),
+                                    pp_challenges.clone(),
                                 )), None)
                             } else {
                                 (None, publisher)
@@ -425,6 +441,7 @@ impl Relay {
                                 (subscriber.map(|subscriber| Consumer::new(
                                     subscriber, locals, coordinator, forward, scope_id,
                                     auth_hook.clone(), session_ctx.clone(), auth_tokens.clone(),
+                                    pp_challenges.clone(),
                                 )), None)
                             } else {
                                 (None, subscriber)

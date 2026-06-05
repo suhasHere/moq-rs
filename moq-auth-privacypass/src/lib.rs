@@ -23,7 +23,10 @@ use privacypass::public_tokens::server::OriginServer;
 pub use challenge::{ChallengeRegistry, ChallengeScope, MatchRule, MoqAction};
 pub use error::*;
 pub use stores::{public_key_from_spki_der, PublicKeyStore, ReplayCache};
-pub use wire::{decode_base64_reason, setup_challenge_reason, MoqAuthChallenge, MoqAuthChallengeError};
+pub use wire::{
+    challenge_reason_for_scope, decode_base64_reason, setup_challenge_reason, MoqAuthChallenge,
+    MoqAuthChallengeError,
+};
 
 /// Outer MoQT auth token type used for Privacy Pass public tokens in the demo.
 pub const MOQ_AUTH_TOKEN_TYPE_PRIVACY_PASS_PUBLIC: u64 = 0x0002;

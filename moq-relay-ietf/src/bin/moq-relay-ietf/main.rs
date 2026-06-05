@@ -15,7 +15,7 @@ use url::Url;
 
 use api_coordinator::{ApiCoordinator, ApiCoordinatorConfig};
 use file_coordinator::FileCoordinator;
-use moq_relay_ietf::{Coordinator, Relay, RelayConfig, Web, WebConfig};
+use moq_relay_ietf::{Coordinator, PrivacyPassChallengeConfig, Relay, RelayConfig, Web, WebConfig};
 
 #[derive(Parser, Clone)]
 pub struct Cli {
@@ -219,6 +219,14 @@ async fn main() -> anyhow::Result<()> {
         coordinator,
         auth_hook: auth_config.hook.clone(),
         auth_setup_challenge_reason: auth_config.pp_setup_challenge_reason.clone(),
+        pp_challenges: auth_config
+            .pp_challenges
+            .clone()
+            .zip(auth_config.pp_issuer_name.clone())
+            .map(|(registry, issuer_name)| PrivacyPassChallengeConfig {
+                registry,
+                issuer_name,
+            }),
     })?;
 
     if cli.dev {
@@ -229,8 +237,6 @@ async fn main() -> anyhow::Result<()> {
             tls,
             qlog_dir: qlog_dir_for_web,
             mlog_dir: mlog_dir_for_web,
-            pp_challenges: auth_config.pp_challenges.clone(),
-            pp_issuer_name: auth_config.pp_issuer_name.clone(),
         });
 
         tokio::spawn(async move {

@@ -51,8 +51,4 @@ pub struct Cli {
     /// Fetch and present Privacy Pass tokens from this issuer URL.
     #[arg(long)]
     pub pp_issuer: Option<Url>,
-
-    /// Relay HTTPS URL used to fetch /pp/challenge. Defaults to the MoQ URL.
-    #[arg(long)]
-    pub pp_relay: Option<Url>,
 }

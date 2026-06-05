@@ -15,7 +15,7 @@ use cli::Cli;
 use moq_transport::{
     coding::{KeyValuePairs, TrackNamespace},
     serve,
-    session::{encode_auth_token, Publisher, Subscriber},
+    session::{encode_auth_token, Publisher, SessionError, Subscriber},
 };
 
 /// The main entry point for the MoQ Clock IETF example.
@@ -51,29 +51,12 @@ async fn main() -> anyhow::Result<()> {
         None => vec![],
     };
 
-    let request_params = if let Some(issuer) = &config.pp_issuer {
-        let relay = config.pp_relay.as_ref().unwrap_or(&config.url);
-        let action = if config.publish {
-            "publish"
-        } else {
-            "subscribe"
-        };
-        privacypass::token_params(
-            issuer,
-            relay,
-            action,
-            &config.namespace,
-            config.tls.disable_verify,
-        )
-        .await?
-    } else {
-        KeyValuePairs::default()
-    };
+    let request_params = KeyValuePairs::default();
 
     // Depending on whether we are publishing or subscribing, create the appropriate session
     if config.publish {
         // Create the publisher session
-        let (session, mut publisher) =
+        let (session, publisher) =
             match Publisher::connect_with_auth(session, transport, auth_raw.clone()).await {
                 Ok(session) => session,
                 Err(err) if config.pp_issuer.is_some() && config.auth_token.is_none() => {
@@ -114,7 +97,7 @@ async fn main() -> anyhow::Result<()> {
             tokio::select! {
                 res = session.run() => res.context("session error")?,
                 res = clock_publisher.run() => res.context("clock error")?,
-                res = publisher.announce_with_params(tracks_reader, request_params) => res.context("failed to serve tracks")?,
+                res = announce_with_retry(publisher, tracks_reader, request_params, config.pp_issuer.as_ref(), config.tls.disable_verify) => res.context("failed to serve tracks")?,
             }
         } else {
             tracing::info!("publishing clock via streams");
@@ -130,7 +113,7 @@ async fn main() -> anyhow::Result<()> {
             tokio::select! {
                 res = session.run() => res.context("session error")?,
                 res = clock_publisher.run() => res.context("clock error")?,
-                res = publisher.announce_with_params(tracks_reader, request_params) => res.context("failed to serve tracks")?,
+                res = announce_with_retry(publisher, tracks_reader, request_params, config.pp_issuer.as_ref(), config.tls.disable_verify) => res.context("failed to serve tracks")?,
             }
         }
     } else {
@@ -162,6 +145,8 @@ async fn main() -> anyhow::Result<()> {
                 Err(err) => return Err(err).context("failed to create MoQ Transport session"),
             };
 
+        let mut session_task = tokio::spawn(async move { session.run().await });
+
         let track_namespace = TrackNamespace::from_utf8_path(&config.namespace);
 
         if config.track_status {
@@ -170,16 +155,72 @@ async fn main() -> anyhow::Result<()> {
         }
 
         let (track_writer, track_reader) =
-            serve::Track::new(track_namespace, config.track).produce();
+            serve::Track::new(track_namespace.clone(), config.track.clone()).produce();
+
+        let subscribe = match subscriber
+            .subscribe_open_with_params(track_writer, request_params)
+            .await
+        {
+            Ok(subscribe) => subscribe,
+            Err(err) if config.pp_issuer.is_some() && config.auth_token.is_none() => {
+                let Some(params) = privacypass::token_params_from_error(
+                    config.pp_issuer.as_ref().unwrap(),
+                    &err,
+                    config.tls.disable_verify,
+                )
+                .await?
+                else {
+                    return Err(err).context("failed to subscribe to track");
+                };
+                tracing::info!("retrying subscribe with Privacy Pass token");
+                let (track_writer, retry_reader) =
+                    serve::Track::new(track_namespace, config.track).produce();
+                let subscribe = subscriber
+                    .subscribe_open_with_params(track_writer, params)
+                    .await
+                    .context("failed to subscribe to track")?;
+                let clock_subscriber = clock::Subscriber::new(retry_reader);
+                tokio::select! {
+                    res = &mut session_task => res.context("session task panicked")?.context("session error")?,
+                    res = clock_subscriber.run() => res.context("clock error")?,
+                    res = subscribe.closed() => res.context("subscription closed")?,
+                }
+                return Ok(());
+            }
+            Err(err) => return Err(err).context("failed to subscribe to track"),
+        };
 
         let clock_subscriber = clock::Subscriber::new(track_reader);
 
         tokio::select! {
-            res = session.run() => res.context("session error")?,
+            res = &mut session_task => res.context("session task panicked")?.context("session error")?,
             res = clock_subscriber.run() => res.context("clock error")?,
-            res = subscriber.subscribe_with_params(track_writer, request_params) => res.context("failed to subscribe to track")?,
+            res = subscribe.closed() => res.context("subscription closed")?,
         }
     }
 
     Ok(())
+}
+
+async fn announce_with_retry(
+    mut publisher: Publisher,
+    tracks: serve::TracksReader,
+    params: KeyValuePairs,
+    issuer: Option<&url::Url>,
+    disable_verify: bool,
+) -> anyhow::Result<()> {
+    match publisher.announce_with_params(tracks.clone(), params).await {
+        Ok(()) => Ok(()),
+        Err(SessionError::Serve(err)) if issuer.is_some() => {
+            let Some(params) =
+                privacypass::token_params_from_error(issuer.unwrap(), &err, disable_verify).await?
+            else {
+                return Err(SessionError::Serve(err).into());
+            };
+            tracing::info!("retrying publish with Privacy Pass token");
+            publisher.announce_with_params(tracks, params).await?;
+            Ok(())
+        }
+        Err(err) => Err(err.into()),
+    }
 }

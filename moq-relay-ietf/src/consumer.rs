@@ -11,7 +11,10 @@ use moq_transport::{
     session::{Announced, SessionError, Subscriber},
 };
 
-use crate::{metrics::GaugeGuard, parse_auth_tokens_from_params, Coordinator, Locals, Producer};
+use crate::{
+    metrics::GaugeGuard, parse_auth_tokens_from_params, Coordinator, Locals,
+    PrivacyPassChallengeConfig, Producer,
+};
 
 /// Consumer of tracks from a remote Publisher
 #[derive(Clone)]
@@ -27,6 +30,7 @@ pub struct Consumer {
     auth_hook: Arc<dyn AuthHook>,
     session_ctx: SessionContext,
     auth_tokens: Vec<AuthBlob>,
+    pp_challenges: Option<PrivacyPassChallengeConfig>,
 }
 
 impl Consumer {
@@ -39,6 +43,7 @@ impl Consumer {
         auth_hook: Arc<dyn AuthHook>,
         session_ctx: SessionContext,
         auth_tokens: Vec<AuthBlob>,
+        pp_challenges: Option<PrivacyPassChallengeConfig>,
     ) -> Self {
         Self {
             subscriber,
@@ -49,6 +54,7 @@ impl Consumer {
             auth_hook,
             session_ctx,
             auth_tokens,
+            pp_challenges,
         }
     }
 
@@ -96,7 +102,7 @@ impl Consumer {
             request_id: None,
         };
         let request_tokens = parse_auth_tokens_from_params(&announce.info.params);
-        let auth_tokens = if request_tokens.is_empty() {
+        let auth_tokens = if request_tokens.is_empty() && self.pp_challenges.is_none() {
             &self.auth_tokens
         } else {
             &request_tokens
@@ -106,9 +112,22 @@ impl Consumer {
                 if let Verdict::Deny(reason) = decision.verdict {
                     metrics::counter!("moq_relay_announce_errors_total", "phase" => "auth")
                         .increment(1);
-                    announce.close(moq_transport::serve::ServeError::Closed(
-                        moq_auth_privacypass::error_code(&reason),
-                    ))?;
+                    let code = moq_auth_privacypass::error_code(&reason);
+                    let err = if let Some(challenges) = &self.pp_challenges {
+                        let scope = moq_auth_privacypass::ChallengeScope::publish_namespace_prefix(
+                            &announce.namespace,
+                        );
+                        let reason = moq_auth_privacypass::challenge_reason_for_scope(
+                            challenges.registry.as_ref(),
+                            &challenges.issuer_name,
+                            scope,
+                        )
+                        .await?;
+                        moq_transport::serve::ServeError::ClosedWithReason { code, reason }
+                    } else {
+                        moq_transport::serve::ServeError::Closed(code)
+                    };
+                    announce.close(err)?;
                     return Err(anyhow::anyhow!("unauthorized publish_namespace"));
                 }
             }

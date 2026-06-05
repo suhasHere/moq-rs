@@ -13,6 +13,24 @@ pub fn setup_challenge_reason(issuer_name: &str) -> Result<String, MoqAuthChalle
     Ok(URL_SAFE_NO_PAD.encode(bytes))
 }
 
+pub async fn challenge_reason_for_scope(
+    registry: &crate::ChallengeRegistry,
+    issuer_name: &str,
+    scope: crate::ChallengeScope,
+) -> Result<String, MoqAuthChallengeError> {
+    let challenge = scope.token_challenge(issuer_name);
+    registry
+        .insert(
+            challenge
+                .digest()
+                .map_err(|_| MoqAuthChallengeError::Encode)?,
+            scope,
+        )
+        .await;
+    let bytes = MoqAuthChallenge::new(vec![challenge])?.encode_for_reason_phrase()?;
+    Ok(URL_SAFE_NO_PAD.encode(bytes))
+}
+
 pub fn decode_base64_reason(reason: &str) -> Result<MoqAuthChallenge, MoqAuthChallengeError> {
     let bytes = URL_SAFE_NO_PAD
         .decode(reason.as_bytes())

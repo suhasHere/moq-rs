@@ -107,6 +107,80 @@ pub struct Session {
     auth_token_raw: Vec<u8>,
 }
 
+/// Server-side session state after CLIENT_SETUP has been decoded but before
+/// SERVER_SETUP is sent.
+///
+/// Relays that need setup-time policy decisions can inspect the connection
+/// path and setup auth token here, resolve scope-specific configuration, and
+/// reject the connection before the MoQT session is accepted.
+#[must_use = "call accept() to finish SERVER_SETUP or close the connection"]
+pub struct PendingAccept {
+    session: web_transport::Session,
+    sender: Writer,
+    recver: Reader,
+    mlog: Option<mlog::MlogWriter>,
+    transport: Transport,
+    connection_path: Option<String>,
+    auth_token_raw: Vec<u8>,
+    client: setup::Client,
+}
+
+impl PendingAccept {
+    pub fn connection_path(&self) -> Option<&str> {
+        self.connection_path.as_deref()
+    }
+
+    pub fn auth_token_raw(&self) -> &[u8] {
+        &self.auth_token_raw
+    }
+
+    pub async fn accept(
+        mut self,
+    ) -> Result<(Session, Option<Publisher>, Option<Subscriber>), SessionError> {
+        let server_versions = setup::Versions(vec![setup::Version::DRAFT_14]);
+
+        let Some(largest_common_version) =
+            Session::largest_common(&server_versions, &self.client.versions)
+        else {
+            return Err(SessionError::Version(self.client.versions, server_versions));
+        };
+
+        let mut params = KeyValuePairs::default();
+        params.set_intvalue(setup::ParameterType::MaxRequestId.into(), 100);
+
+        let server = setup::Server {
+            version: largest_common_version,
+            params,
+        };
+
+        tracing::debug!(
+            target: "moq_transport::control",
+            direction = "sent",
+            msg_type = "SERVER_SETUP",
+            version = ?server.version,
+            "MoQT control message"
+        );
+
+        if let Some(ref mut mlog) = self.mlog {
+            let event = mlog::events::server_setup_created(mlog.elapsed_ms(), 0, &server);
+            let _ = mlog.add_event(event);
+        }
+
+        self.sender.encode(&server).await?;
+
+        Ok(Session::new(
+            self.session,
+            self.sender,
+            self.recver,
+            1,
+            self.mlog,
+            self.transport,
+            self.connection_path,
+            self.auth_token_raw,
+        ))
+    }
+}
+
 impl Session {
     const MAX_CONNECTION_PATH_LEN: usize = 1024;
 
@@ -658,13 +732,27 @@ impl Session {
         mlog_path: Option<PathBuf>,
         transport: Transport,
     ) -> Result<(Session, Option<Publisher>, Option<Subscriber>), SessionError> {
+        Self::accept_pending(session, mlog_path, transport)
+            .await?
+            .accept()
+            .await
+    }
+
+    /// Accept an inbound connection and decode CLIENT_SETUP without sending
+    /// SERVER_SETUP yet. This creates an authorization/scope decision point
+    /// for relays before the MoQT session is accepted.
+    pub async fn accept_pending(
+        session: web_transport::Session,
+        mlog_path: Option<PathBuf>,
+        transport: Transport,
+    ) -> Result<PendingAccept, SessionError> {
         let mut mlog = mlog_path.and_then(|path| {
             mlog::MlogWriter::new(path)
                 .map_err(|e| tracing::warn!("Failed to create mlog: {}", e))
                 .ok()
         });
         let control = session.accept_bi().await?;
-        let mut sender = Writer::new(control.0);
+        let sender = Writer::new(control.0);
         let mut recver = Reader::new(control.1);
 
         let client: setup::Client = recver.decode().await?;
@@ -718,50 +806,16 @@ impl Session {
             let _ = mlog.add_event(event);
         }
 
-        let server_versions = setup::Versions(vec![setup::Version::DRAFT_14]);
-
-        if let Some(largest_common_version) =
-            Self::largest_common(&server_versions, &client.versions)
-        {
-            // TODO SLG - make configurable?
-            let mut params = KeyValuePairs::default();
-            params.set_intvalue(setup::ParameterType::MaxRequestId.into(), 100);
-
-            let server = setup::Server {
-                version: largest_common_version,
-                params,
-            };
-
-            tracing::debug!(
-                target: "moq_transport::control",
-                direction = "sent",
-                msg_type = "SERVER_SETUP",
-                version = ?server.version,
-                "MoQT control message"
-            );
-
-            // Emit mlog event for SERVER_SETUP created
-            if let Some(ref mut mlog) = mlog {
-                let event = mlog::events::server_setup_created(mlog.elapsed_ms(), 0, &server);
-                let _ = mlog.add_event(event);
-            }
-
-            sender.encode(&server).await?;
-
-            // We are the server, so the first request id is 1
-            Ok(Session::new(
-                session,
-                sender,
-                recver,
-                1,
-                mlog,
-                transport,
-                connection_path,
-                auth_token_raw,
-            ))
-        } else {
-            Err(SessionError::Version(client.versions, server_versions))
-        }
+        Ok(PendingAccept {
+            session,
+            sender,
+            recver,
+            mlog,
+            transport,
+            connection_path,
+            auth_token_raw,
+            client,
+        })
     }
 
     /// Run Tasks for the session, including sending of control messages, receiving and processing

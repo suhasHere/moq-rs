@@ -290,9 +290,12 @@ impl Relay {
                             // error code if scope resolution fails after the MoQ handshake.
                             let raw_conn = conn.clone();
 
-                            // Create the MoQ session over the connection (setup handshake etc)
-                            let (session, publisher, subscriber) = match moq_transport::session::Session::accept(conn, mlog_path, transport).await {
-                                Ok(session) => session,
+                            // Decode CLIENT_SETUP without sending SERVER_SETUP yet.
+                            // This is the setup authorization decision point: resolve
+                            // scope/config, run the setup hook, and only then finish
+                            // accepting the MoQT session.
+                            let pending = match moq_transport::session::Session::accept_pending(conn, mlog_path, transport).await {
+                                Ok(pending) => pending,
                                 Err(err) => {
                                     tracing::warn!(error = %err, "failed to accept MoQ session: {}", err);
                                     metrics::counter!("moq_relay_connection_errors_total", "stage" => "session_accept").increment(1);
@@ -302,27 +305,24 @@ impl Relay {
                                 }
                             };
 
-                            // Create our MoQ relay session
-                            let moq_session = session;
-
                             // Parse auth tokens from the raw AUTHORIZATION TOKEN parameter.
-                            let auth_tokens = parse_auth_tokens(moq_session.auth_token_raw());
+                            let auth_tokens = parse_auth_tokens(pending.auth_token_raw());
 
                             // Build session context for the auth hook.
                             let session_ctx = SessionContext {
                                 session_id: rand_session_id(),
-                                connection_path: moq_session.connection_path().map(|s| s.to_string()),
+                                connection_path: pending.connection_path().map(|s| s.to_string()),
                                 peer: "0.0.0.0:0".parse().unwrap(),
                             };
 
                             // Resolve the connection path to a scope (identity + permissions).
                             // This translates the raw transport-level path into an application-level
                             // scope_id and determines what the connection is allowed to do.
-                            let scope_info = match coordinator.resolve_scope(moq_session.connection_path()).await {
+                            let scope_info = match coordinator.resolve_scope(pending.connection_path()).await {
                                 Ok(info) => info,
                                 Err(err) => {
                                     tracing::warn!(
-                                        connection_path = moq_session.connection_path(),
+                                        connection_path = pending.connection_path(),
                                         error = %err,
                                         "scope resolution failed, rejecting session"
                                     );
@@ -346,7 +346,7 @@ impl Relay {
 
                             if let Some(ref info) = scope_info {
                                 tracing::debug!(
-                                    connection_path = moq_session.connection_path(),
+                                    connection_path = pending.connection_path(),
                                     scope_id = %info.scope_id,
                                     permissions = ?info.permissions,
                                     "scope resolved"
@@ -393,6 +393,16 @@ impl Relay {
                                     return Ok(());
                                 }
                             }
+
+                            let (moq_session, publisher, subscriber) = match pending.accept().await {
+                                Ok(session) => session,
+                                Err(err) => {
+                                    tracing::warn!(error = %err, "failed to send MoQ SERVER_SETUP: {}", err);
+                                    metrics::counter!("moq_relay_connection_errors_total", "stage" => "session_accept").increment(1);
+                                    metrics::counter!("moq_relay_connections_closed_total").increment(1);
+                                    return Ok(());
+                                }
+                            };
 
                             // Gate Producer/Consumer creation on permissions.
                             // Note the intentional inversion:

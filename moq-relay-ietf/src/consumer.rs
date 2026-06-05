@@ -5,13 +5,16 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
-use moq_auth::{AuthBlob, AuthHook, AuthzOperation, RequestContext, SessionContext};
+use moq_auth::{AuthBlob, AuthHook, AuthzOperation, RequestContext, SessionContext, Verdict};
 use moq_transport::{
     serve::Tracks,
     session::{Announced, SessionError, Subscriber},
 };
 
-use crate::{metrics::GaugeGuard, Coordinator, Locals, Producer};
+use crate::{
+    metrics::GaugeGuard, parse_auth_tokens_from_params, Coordinator, Locals,
+    PrivacyPassChallengeConfig, Producer,
+};
 
 /// Consumer of tracks from a remote Publisher
 #[derive(Clone)]
@@ -27,6 +30,7 @@ pub struct Consumer {
     auth_hook: Arc<dyn AuthHook>,
     session_ctx: SessionContext,
     auth_tokens: Vec<AuthBlob>,
+    pp_challenges: Option<PrivacyPassChallengeConfig>,
 }
 
 impl Consumer {
@@ -39,6 +43,7 @@ impl Consumer {
         auth_hook: Arc<dyn AuthHook>,
         session_ctx: SessionContext,
         auth_tokens: Vec<AuthBlob>,
+        pp_challenges: Option<PrivacyPassChallengeConfig>,
     ) -> Self {
         Self {
             subscriber,
@@ -49,6 +54,7 @@ impl Consumer {
             auth_hook,
             session_ctx,
             auth_tokens,
+            pp_challenges,
         }
     }
 
@@ -95,16 +101,41 @@ impl Consumer {
             },
             request_id: None,
         };
-        match self.auth_hook.on_request(&req_ctx, &self.auth_tokens).await {
-            Ok(decision) if !decision.is_allowed() => {
-                metrics::counter!("moq_relay_announce_errors_total", "phase" => "auth").increment(1);
-                return Err(anyhow::anyhow!("unauthorized publish_namespace"));
+        let request_tokens = parse_auth_tokens_from_params(&announce.info.params);
+        let auth_tokens = if request_tokens.is_empty() && self.pp_challenges.is_none() {
+            &self.auth_tokens
+        } else {
+            &request_tokens
+        };
+        match self.auth_hook.on_request(&req_ctx, auth_tokens).await {
+            Ok(decision) => {
+                if let Verdict::Deny(reason) = decision.verdict {
+                    metrics::counter!("moq_relay_announce_errors_total", "phase" => "auth")
+                        .increment(1);
+                    let code = moq_auth_privacypass::error_code(&reason);
+                    let err = if let Some(challenges) = &self.pp_challenges {
+                        let scope = moq_auth_privacypass::ChallengeScope::publish_namespace_prefix(
+                            &announce.namespace,
+                        );
+                        let reason = moq_auth_privacypass::challenge_reason_for_scope(
+                            challenges.registry.as_ref(),
+                            &challenges.issuer_name,
+                            scope,
+                        )
+                        .await?;
+                        moq_transport::serve::ServeError::ClosedWithReason { code, reason }
+                    } else {
+                        moq_transport::serve::ServeError::Closed(code)
+                    };
+                    announce.close(err)?;
+                    return Err(anyhow::anyhow!("unauthorized publish_namespace"));
+                }
             }
             Err(e) => {
-                metrics::counter!("moq_relay_announce_errors_total", "phase" => "auth").increment(1);
+                metrics::counter!("moq_relay_announce_errors_total", "phase" => "auth")
+                    .increment(1);
                 return Err(anyhow::anyhow!("auth error: {e}"));
             }
-            _ => {}
         }
 
         let mut tasks = FuturesUnordered::new();

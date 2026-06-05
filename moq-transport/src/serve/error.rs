@@ -14,6 +14,9 @@ pub enum ServeError {
     #[error("closed, code={0}")]
     Closed(u64),
 
+    #[error("closed, code={code}: {reason}")]
+    ClosedWithReason { code: u64, reason: String },
+
     #[error("not found")]
     NotFound,
 
@@ -53,7 +56,7 @@ impl ServeError {
             // Cancel/Going away - maps to various contexts
             Self::Cancel => 1,
             // Pass through application-specific error codes
-            Self::Closed(code) => *code,
+            Self::Closed(code) | Self::ClosedWithReason { code, .. } => *code,
             // TRACK_DOES_NOT_EXIST (0x4) from SUBSCRIBE_ERROR codes
             Self::NotFound | Self::NotFoundWithId(_, _) => 0x4,
             // This is more of a session-level error, but keeping a reasonable code
@@ -64,6 +67,13 @@ impl ServeError {
             Self::NotImplemented(_) | Self::NotImplementedWithId(_, _) => 0x3,
             // INTERNAL_ERROR (0x0) - per-request error registries use 0x0
             Self::Internal(_) | Self::InternalWithId(_, _) => 0x0,
+        }
+    }
+
+    pub fn reason(&self) -> String {
+        match self {
+            Self::ClosedWithReason { reason, .. } => reason.clone(),
+            _ => self.to_string(),
         }
     }
 

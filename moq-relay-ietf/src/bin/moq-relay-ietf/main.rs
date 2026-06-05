@@ -5,20 +5,17 @@ mod api_coordinator;
 mod file_coordinator;
 
 use std::sync::Arc;
+use std::time::Duration;
 use std::{net, path::PathBuf};
 
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use clap::Parser;
+use serde::Deserialize;
 use url::Url;
 
 use api_coordinator::{ApiCoordinator, ApiCoordinatorConfig};
 use file_coordinator::FileCoordinator;
-use moq_relay_ietf::{Coordinator, Relay, RelayConfig, Web, WebConfig};
-
-#[cfg(feature = "auth-cat")]
-use {
-    anyhow::Context,
-    moq_auth_cat::{C4MAuthHook, C4MConfig, Es256Algorithm},
-};
+use moq_relay_ietf::{Coordinator, PrivacyPassChallengeConfig, Relay, RelayConfig, Web, WebConfig};
 
 #[derive(Parser, Clone)]
 pub struct Cli {
@@ -99,22 +96,21 @@ pub struct Cli {
     #[arg(long, env = "MOQ_AUTH_SHARED_SECRET")]
     pub auth_shared_secret: Option<String>,
 
-    /// Path to PEM-encoded ES256 public key for C4M token verification.
-    /// Requires the `auth-cat` feature.
+    /// Enable Privacy Pass public token auth using issuer directory keys.
     #[arg(long)]
-    pub auth_cat_public_key: Option<PathBuf>,
+    pub auth_privacypass: bool,
 
-    /// Expected token issuer for C4M auth (repeatable).
-    #[arg(long)]
-    pub auth_cat_issuer: Vec<String>,
+    /// Privacy Pass issuer base URL.
+    #[arg(long, default_value = "https://demo-pat.issuer.cloudflare.com")]
+    pub pp_issuer: Url,
 
-    /// Expected token audience for C4M auth (repeatable).
-    #[arg(long)]
-    pub auth_cat_audience: Vec<String>,
+    /// Require Privacy Pass during SETUP, not only operation requests.
+    #[arg(long, default_value_t = false)]
+    pub pp_setup_required: bool,
 
-    /// Clock skew tolerance in seconds for C4M token validation.
-    #[arg(long, default_value = "60")]
-    pub auth_cat_clock_skew: i64,
+    /// Privacy Pass challenge TTL in seconds.
+    #[arg(long, default_value_t = 300)]
+    pub pp_challenge_ttl: u64,
 }
 
 #[tokio::main]
@@ -208,8 +204,8 @@ async fn main() -> anyhow::Result<()> {
         Arc::new(FileCoordinator::new(&cli.coordinator_file, relay_url))
     };
 
-    // Build the auth hook if C4M is configured
-    let auth_hook = build_auth_hook(&cli)?;
+    // Build the auth hook if configured.
+    let auth_config = build_auth_hook(&cli).await?;
 
     // Create a QUIC server for media.
     let relay = Relay::new(RelayConfig {
@@ -221,7 +217,16 @@ async fn main() -> anyhow::Result<()> {
         node: cli.node,
         announce: cli.announce,
         coordinator,
-        auth_hook,
+        auth_hook: auth_config.hook.clone(),
+        auth_setup_challenge_reason: auth_config.pp_setup_challenge_reason.clone(),
+        pp_challenges: auth_config
+            .pp_challenges
+            .clone()
+            .zip(auth_config.pp_issuer_name.clone())
+            .map(|(registry, issuer_name)| PrivacyPassChallengeConfig {
+                registry,
+                issuer_name,
+            }),
     })?;
 
     if cli.dev {
@@ -242,63 +247,106 @@ async fn main() -> anyhow::Result<()> {
     relay.run().await
 }
 
-#[cfg(feature = "auth-cat")]
-fn build_auth_hook(cli: &Cli) -> anyhow::Result<Option<Arc<dyn moq_auth::AuthHook>>> {
-    if cli.auth_shared_secret.is_some() && cli.auth_cat_public_key.is_some() {
-        anyhow::bail!(
-            "--auth-shared-secret and --auth-cat-public-key are mutually exclusive"
-        );
-    }
-
-    if let Some(ref secret) = cli.auth_shared_secret {
-        tracing::info!("shared-secret auth enabled (token type 0)");
-        return Ok(Some(Arc::new(moq_auth::KeyValueAuthHook::new(
-            secret.as_bytes().to_vec(),
-        ))));
-    }
-
-    let Some(key_path) = &cli.auth_cat_public_key else {
-        return Ok(None);
-    };
-
-    let pem_data = std::fs::read_to_string(key_path)
-        .with_context(|| format!("reading C4M public key from {}", key_path.display()))?;
-
-    let algorithm = Es256Algorithm::from_public_key_pem(&pem_data)
-        .map_err(|e| anyhow::anyhow!("invalid ES256 public key: {e}"))?;
-
-    let mut config = C4MConfig::new(algorithm)
-        .with_clock_skew_tolerance(cli.auth_cat_clock_skew);
-
-    if !cli.auth_cat_issuer.is_empty() {
-        config = config.with_expected_issuers(cli.auth_cat_issuer.clone());
-    }
-    if !cli.auth_cat_audience.is_empty() {
-        config = config.with_expected_audiences(cli.auth_cat_audience.clone());
-    }
-
-    tracing::info!(
-        "C4M auth enabled with key {}",
-        key_path.display()
-    );
-
-    Ok(Some(Arc::new(C4MAuthHook::new(config))))
+struct AuthConfig {
+    hook: Option<Arc<dyn moq_auth::AuthHook>>,
+    pp_challenges: Option<Arc<moq_auth_privacypass::ChallengeRegistry>>,
+    pp_issuer_name: Option<String>,
+    pp_setup_challenge_reason: Option<String>,
 }
 
-#[cfg(not(feature = "auth-cat"))]
-fn build_auth_hook(cli: &Cli) -> anyhow::Result<Option<Arc<dyn moq_auth::AuthHook>>> {
-    if let Some(ref secret) = cli.auth_shared_secret {
-        tracing::info!("shared-secret auth enabled (token type 0)");
-        return Ok(Some(Arc::new(moq_auth::KeyValueAuthHook::new(
-            secret.as_bytes().to_vec(),
-        ))));
+async fn build_auth_hook(cli: &Cli) -> anyhow::Result<AuthConfig> {
+    if cli.auth_shared_secret.is_some() && cli.auth_privacypass {
+        anyhow::bail!("--auth-shared-secret and --auth-privacypass are mutually exclusive");
     }
 
-    if cli.auth_cat_public_key.is_some() {
-        anyhow::bail!(
-            "--auth-cat-public-key requires the `auth-cat` feature. \
-             Rebuild with --features auth-cat"
-        );
+    if let Some(ref secret) = cli.auth_shared_secret {
+        tracing::info!("shared-secret auth enabled (token type 0)");
+        return Ok(AuthConfig {
+            hook: Some(Arc::new(moq_auth::KeyValueAuthHook::new(
+                secret.as_bytes().to_vec(),
+            ))),
+            pp_challenges: None,
+            pp_issuer_name: None,
+            pp_setup_challenge_reason: None,
+        });
     }
-    Ok(None)
+
+    if cli.auth_privacypass {
+        let public_keys = load_privacypass_public_keys(cli.pp_issuer.clone()).await?;
+        let hook = moq_auth_privacypass::PrivacyPassAuthHook::demo(
+            public_keys,
+            Duration::from_secs(cli.pp_challenge_ttl),
+        )
+        .with_setup_required(cli.pp_setup_required);
+        let challenges = hook.challenges();
+        let issuer_name = cli.pp_issuer.host_str().map(ToString::to_string);
+        if let Some(issuer_name) = issuer_name.as_deref() {
+            let setup_scope = moq_auth_privacypass::ChallengeScope::setup();
+            let setup_challenge = setup_scope.token_challenge(issuer_name);
+            challenges
+                .insert(setup_challenge.digest()?, setup_scope)
+                .await;
+        }
+        tracing::info!(issuer = %cli.pp_issuer, setup_required = cli.pp_setup_required, "Privacy Pass auth enabled");
+        return Ok(AuthConfig {
+            hook: Some(Arc::new(hook)),
+            pp_challenges: Some(challenges),
+            pp_setup_challenge_reason: issuer_name
+                .as_deref()
+                .map(moq_auth_privacypass::setup_challenge_reason)
+                .transpose()?,
+            pp_issuer_name: issuer_name,
+        });
+    }
+
+    Ok(AuthConfig {
+        hook: None,
+        pp_challenges: None,
+        pp_issuer_name: None,
+        pp_setup_challenge_reason: None,
+    })
+}
+
+#[derive(Debug, Deserialize)]
+struct IssuerDirectory {
+    #[serde(rename = "token-keys")]
+    token_keys: Vec<IssuerTokenKey>,
+}
+
+#[derive(Debug, Deserialize)]
+struct IssuerTokenKey {
+    #[serde(rename = "token-type")]
+    token_type: u16,
+    #[serde(rename = "token-key")]
+    token_key: String,
+}
+
+async fn load_privacypass_public_keys(
+    issuer: Url,
+) -> anyhow::Result<Arc<moq_auth_privacypass::PublicKeyStore>> {
+    let directory_url = issuer.join("/.well-known/private-token-issuer-directory")?;
+    let directory: IssuerDirectory = reqwest::get(directory_url.clone())
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+
+    let store = Arc::new(moq_auth_privacypass::PublicKeyStore::default());
+    let mut loaded = 0usize;
+    for key in directory.token_keys {
+        if key.token_type != moq_auth_privacypass::PRIVACY_PASS_PUBLIC_TOKEN_TYPE {
+            continue;
+        }
+        let der = URL_SAFE_NO_PAD.decode(key.token_key.as_bytes())?;
+        let public_key = moq_auth_privacypass::public_key_from_spki_der(&der)?;
+        store.insert_public_key(public_key).await?;
+        loaded += 1;
+    }
+
+    if loaded == 0 {
+        anyhow::bail!("issuer directory did not contain Privacy Pass public token keys");
+    }
+
+    tracing::info!(issuer = %issuer, keys = loaded, "loaded Privacy Pass issuer keys");
+    Ok(store)
 }

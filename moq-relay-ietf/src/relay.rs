@@ -10,9 +10,15 @@ use moq_native_ietf::quic::{self, Endpoint};
 use url::Url;
 
 use moq_auth::{AllowAllAuthHook, AuthBlob, AuthHook, SessionContext};
-use moq_transport::coding::{Decode, VarInt};
+use moq_transport::coding::{Decode, KeyValuePairs, Value, VarInt};
 
 use crate::{metrics::GaugeGuard, Consumer, Coordinator, Locals, Producer, RemoteManager, Session};
+
+#[derive(Clone)]
+pub struct PrivacyPassChallengeConfig {
+    pub registry: Arc<moq_auth_privacypass::ChallengeRegistry>,
+    pub issuer_name: String,
+}
 
 // A type alias for boxed future
 type ServerFuture = Pin<
@@ -59,6 +65,11 @@ pub struct RelayConfig {
 
     /// Authorization hook for validating tokens. Defaults to AllowAllAuthHook.
     pub auth_hook: Option<Arc<dyn AuthHook>>,
+
+    /// Reason text to use when setup authorization fails.
+    pub auth_setup_challenge_reason: Option<String>,
+
+    pub pp_challenges: Option<PrivacyPassChallengeConfig>,
 }
 
 /// MoQ Relay server.
@@ -70,6 +81,8 @@ pub struct Relay {
     remotes: RemoteManager,
     coordinator: Arc<dyn Coordinator>,
     auth_hook: Arc<dyn AuthHook>,
+    auth_setup_challenge_reason: Option<String>,
+    pp_challenges: Option<PrivacyPassChallengeConfig>,
 }
 
 impl Relay {
@@ -127,6 +140,8 @@ impl Relay {
             remotes,
             coordinator: config.coordinator,
             auth_hook,
+            auth_setup_challenge_reason: config.auth_setup_challenge_reason,
+            pp_challenges: config.pp_challenges,
         })
     }
 
@@ -140,6 +155,8 @@ impl Relay {
             remotes,
             coordinator,
             auth_hook,
+            auth_setup_challenge_reason,
+            pp_challenges,
         } = self;
 
         let run_result = async {
@@ -200,6 +217,7 @@ impl Relay {
                         forward_auth.clone(),
                         forward_ctx.clone(),
                         vec![],
+                        None,
                     )),
                     consumer: Some(Consumer::new(
                         subscriber,
@@ -210,6 +228,7 @@ impl Relay {
                         forward_auth,
                         forward_ctx,
                         vec![],
+                        None,
                     )),
                     // Forward connections are always full read-write relay peers,
                     // so no reject loops needed.
@@ -273,6 +292,8 @@ impl Relay {
                         let forward = forward_producer.clone();
                         let coordinator = coordinator.clone();
                         let auth_hook = auth_hook.clone();
+                        let auth_setup_challenge_reason = auth_setup_challenge_reason.clone();
+                        let pp_challenges = pp_challenges.clone();
 
                         // Spawn a new task to handle the connection
                         tasks.push(async move {
@@ -283,9 +304,12 @@ impl Relay {
                             // error code if scope resolution fails after the MoQ handshake.
                             let raw_conn = conn.clone();
 
-                            // Create the MoQ session over the connection (setup handshake etc)
-                            let (session, publisher, subscriber) = match moq_transport::session::Session::accept(conn, mlog_path, transport).await {
-                                Ok(session) => session,
+                            // Decode CLIENT_SETUP without sending SERVER_SETUP yet.
+                            // This is the setup authorization decision point: resolve
+                            // scope/config, run the setup hook, and only then finish
+                            // accepting the MoQT session.
+                            let pending = match moq_transport::session::Session::accept_pending(conn, mlog_path, transport).await {
+                                Ok(pending) => pending,
                                 Err(err) => {
                                     tracing::warn!(error = %err, "failed to accept MoQ session: {}", err);
                                     metrics::counter!("moq_relay_connection_errors_total", "stage" => "session_accept").increment(1);
@@ -295,54 +319,24 @@ impl Relay {
                                 }
                             };
 
-                            // Create our MoQ relay session
-                            let moq_session = session;
-
                             // Parse auth tokens from the raw AUTHORIZATION TOKEN parameter.
-                            let auth_tokens = parse_auth_tokens(moq_session.auth_token_raw());
+                            let auth_tokens = parse_auth_tokens(pending.auth_token_raw());
 
                             // Build session context for the auth hook.
                             let session_ctx = SessionContext {
                                 session_id: rand_session_id(),
-                                connection_path: moq_session.connection_path().map(|s| s.to_string()),
+                                connection_path: pending.connection_path().map(|s| s.to_string()),
                                 peer: "0.0.0.0:0".parse().unwrap(),
                             };
-
-                            // Invoke auth hook at SETUP time.
-                            match auth_hook.on_setup(&session_ctx, &auth_tokens).await {
-                                Ok(decision) if decision.is_allowed() => {
-                                    tracing::debug!(
-                                        principal = ?decision.principal,
-                                        "auth on_setup: allowed"
-                                    );
-                                }
-                                Ok(decision) => {
-                                    tracing::info!(
-                                        verdict = ?decision.verdict,
-                                        "auth on_setup: denied, closing session"
-                                    );
-                                    raw_conn.close(0x2, "unauthorized");
-                                    metrics::counter!("moq_relay_connection_errors_total", "stage" => "auth_setup").increment(1);
-                                    metrics::counter!("moq_relay_connections_closed_total").increment(1);
-                                    return Ok(());
-                                }
-                                Err(err) => {
-                                    tracing::error!(error = %err, "auth hook on_setup failed");
-                                    raw_conn.close(0x2, "authorization error");
-                                    metrics::counter!("moq_relay_connection_errors_total", "stage" => "auth_setup").increment(1);
-                                    metrics::counter!("moq_relay_connections_closed_total").increment(1);
-                                    return Ok(());
-                                }
-                            }
 
                             // Resolve the connection path to a scope (identity + permissions).
                             // This translates the raw transport-level path into an application-level
                             // scope_id and determines what the connection is allowed to do.
-                            let scope_info = match coordinator.resolve_scope(moq_session.connection_path()).await {
+                            let scope_info = match coordinator.resolve_scope(pending.connection_path()).await {
                                 Ok(info) => info,
                                 Err(err) => {
                                     tracing::warn!(
-                                        connection_path = moq_session.connection_path(),
+                                        connection_path = pending.connection_path(),
                                         error = %err,
                                         "scope resolution failed, rejecting session"
                                     );
@@ -366,12 +360,64 @@ impl Relay {
 
                             if let Some(ref info) = scope_info {
                                 tracing::debug!(
-                                    connection_path = moq_session.connection_path(),
+                                    connection_path = pending.connection_path(),
                                     scope_id = %info.scope_id,
                                     permissions = ?info.permissions,
                                     "scope resolved"
                                 );
                             }
+
+                            // Invoke auth hook at SETUP time after scope resolution.
+                            // Privacy Pass deployments commonly need the resolved scope to
+                            // select issuer keys and auth policy. The current hook context
+                            // still exposes the connection path; per-scope auth config can
+                            // be threaded here without changing request handling.
+                            match auth_hook.on_setup(&session_ctx, &auth_tokens).await {
+                                Ok(decision) if decision.is_allowed() => {
+                                    tracing::debug!(
+                                        principal = ?decision.principal,
+                                        "auth on_setup: allowed"
+                                    );
+                                }
+                                Ok(decision) => {
+                                    tracing::info!(
+                                        verdict = ?decision.verdict,
+                                        "auth on_setup: denied, closing session"
+                                    );
+                                    raw_conn.close(
+                                        0x2,
+                                        auth_setup_challenge_reason
+                                            .as_deref()
+                                            .unwrap_or("unauthorized"),
+                                    );
+                                    metrics::counter!("moq_relay_connection_errors_total", "stage" => "auth_setup").increment(1);
+                                    metrics::counter!("moq_relay_connections_closed_total").increment(1);
+                                    return Ok(());
+                                }
+                                Err(err) => {
+                                    tracing::error!(error = %err, "auth hook on_setup failed");
+                                    raw_conn.close(
+                                        0x2,
+                                        auth_setup_challenge_reason
+                                            .as_deref()
+                                            .unwrap_or("authorization error"),
+                                    );
+                                    metrics::counter!("moq_relay_connection_errors_total", "stage" => "auth_setup").increment(1);
+                                    metrics::counter!("moq_relay_connections_closed_total").increment(1);
+                                    return Ok(());
+                                }
+                            }
+
+                            let (moq_session, publisher, subscriber) = match pending.accept().await {
+                                Ok(session) => session,
+                                Err(err) => {
+                                    tracing::warn!(error = %err, "failed to send MoQ SERVER_SETUP: {}", err);
+                                    metrics::counter!("moq_relay_connection_errors_total", "stage" => "session_accept").increment(1);
+                                    metrics::counter!("moq_relay_connections_closed_total").increment(1);
+                                    return Ok(());
+                                }
+                            };
+                            tracing::info!("MoQ SERVER_SETUP sent after setup auth");
 
                             // Gate Producer/Consumer creation on permissions.
                             // Note the intentional inversion:
@@ -385,6 +431,7 @@ impl Relay {
                                 (publisher.map(|publisher| Producer::new(
                                     publisher, locals.clone(), remotes, scope_id.clone(),
                                     auth_hook.clone(), session_ctx.clone(), auth_tokens.clone(),
+                                    pp_challenges.clone(),
                                 )), None)
                             } else {
                                 (None, publisher)
@@ -394,6 +441,7 @@ impl Relay {
                                 (subscriber.map(|subscriber| Consumer::new(
                                     subscriber, locals, coordinator, forward, scope_id,
                                     auth_hook.clone(), session_ctx.clone(), auth_tokens.clone(),
+                                    pp_challenges.clone(),
                                 )), None)
                             } else {
                                 (None, subscriber)
@@ -441,12 +489,12 @@ impl Relay {
 
 /// Parse the raw AUTHORIZATION TOKEN parameter into AuthBlobs.
 ///
-/// For the initial implementation, we handle inline tokens (USE_VALUE, alias type 0x2)
+/// For the initial implementation, we handle inline tokens (USE_VALUE, alias type 0x3)
 /// which carry Token Type + Token Value directly. Alias-based token operations
 /// (REGISTER, USE_ALIAS, DELETE) are not yet supported.
 ///
 /// Wire format per token entry:
-///   Alias Type (vi64) = 0x2 (USE_VALUE)
+///   Alias Type (vi64) = 0x3 (USE_VALUE)
 ///   Token Type (vi64)
 ///   Token Value (bytes: length-prefixed)
 fn parse_auth_tokens(raw: &[u8]) -> Vec<AuthBlob> {
@@ -459,12 +507,15 @@ fn parse_auth_tokens(raw: &[u8]) -> Vec<AuthBlob> {
 
     while buf.has_remaining() {
         let Ok(alias_type) = VarInt::decode(&mut buf) else {
-            tracing::warn!(remaining = buf.remaining(), "malformed auth token parameter, truncating");
+            tracing::warn!(
+                remaining = buf.remaining(),
+                "malformed auth token parameter, truncating"
+            );
             break;
         };
 
         match alias_type.into_inner() {
-            0x2 => {
+            0x3 => {
                 let Ok(token_type) = VarInt::decode(&mut buf) else {
                     tracing::warn!("malformed auth token: missing token type");
                     break;
@@ -475,7 +526,11 @@ fn parse_auth_tokens(raw: &[u8]) -> Vec<AuthBlob> {
                 };
                 let token_len: usize = token_len.into();
                 if buf.remaining() < token_len {
-                    tracing::warn!(expected = token_len, actual = buf.remaining(), "malformed auth token: truncated value");
+                    tracing::warn!(
+                        expected = token_len,
+                        actual = buf.remaining(),
+                        "malformed auth token: truncated value"
+                    );
                     break;
                 }
                 let token_value = buf.copy_to_bytes(token_len);
@@ -485,13 +540,28 @@ fn parse_auth_tokens(raw: &[u8]) -> Vec<AuthBlob> {
                 });
             }
             other => {
-                tracing::debug!(alias_type = other, "skipping unsupported auth token alias type");
+                tracing::debug!(
+                    alias_type = other,
+                    "skipping unsupported auth token alias type"
+                );
                 break;
             }
         }
     }
 
     tokens
+}
+
+pub(crate) fn parse_auth_tokens_from_params(params: &KeyValuePairs) -> Vec<AuthBlob> {
+    let Some(kvp) = params.get(moq_transport::setup::ParameterType::AuthorizationToken.into())
+    else {
+        return vec![];
+    };
+    let Value::BytesValue(raw) = &kvp.value else {
+        tracing::warn!("AUTHORIZATION TOKEN parameter must be bytes encoded");
+        return vec![];
+    };
+    parse_auth_tokens(raw)
 }
 
 fn rand_session_id() -> u64 {

@@ -4,7 +4,7 @@
 
 use std::{collections::VecDeque, ops};
 
-use crate::coding::TrackNamespace;
+use crate::coding::{KeyValuePairs, TrackNamespace};
 use crate::watch::State;
 use crate::{message, serve::ServeError};
 
@@ -14,6 +14,7 @@ use super::{Publisher, Subscribed, TrackStatusRequested};
 pub struct AnnounceInfo {
     pub request_id: u64,
     pub namespace: TrackNamespace,
+    pub params: KeyValuePairs,
 }
 
 struct AnnounceState {
@@ -55,20 +56,22 @@ pub struct Announce {
 }
 
 impl Announce {
-    pub(super) fn new(
+    pub(super) fn new_with_params(
         mut publisher: Publisher,
         request_id: u64,
         namespace: TrackNamespace,
+        params: KeyValuePairs,
     ) -> (Announce, AnnounceRecv) {
         let info = AnnounceInfo {
             request_id,
             namespace: namespace.clone(),
+            params: params.clone(),
         };
 
         publisher.send_message(message::PublishNamespace {
             id: request_id,
             track_namespace: namespace.clone(),
-            params: Default::default(),
+            params,
         });
 
         let (send, recv) = State::default().split();

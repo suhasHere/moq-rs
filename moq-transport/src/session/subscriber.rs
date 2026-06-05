@@ -136,13 +136,31 @@ impl Subscriber {
         subscribe.closed().await
     }
 
+    pub async fn subscribe_with_params(
+        &mut self,
+        track: serve::TrackWriter,
+        params: crate::coding::KeyValuePairs,
+    ) -> Result<(), ServeError> {
+        let subscribe = self.subscribe_open_with_params(track, params).await?;
+        subscribe.closed().await
+    }
+
     /// Subscribe to a track and wait until the publisher acknowledges it.
     pub async fn subscribe_open(
         &mut self,
         track: serve::TrackWriter,
     ) -> Result<Subscribe, ServeError> {
+        self.subscribe_open_with_params(track, Default::default())
+            .await
+    }
+
+    pub async fn subscribe_open_with_params(
+        &mut self,
+        track: serve::TrackWriter,
+        params: crate::coding::KeyValuePairs,
+    ) -> Result<Subscribe, ServeError> {
         let request_id = self.get_next_request_id();
-        let (send, recv) = Subscribe::new(self.clone(), request_id, track);
+        let (send, recv) = Subscribe::new_with_params(self.clone(), request_id, track, params);
         self.subscribes.lock().unwrap().insert(request_id, recv);
         send.ok().await?;
         Ok(send)
@@ -212,6 +230,8 @@ impl Subscriber {
 
         // Create the announced namespace and insert it into our map of active announces, and the announced queue.
         let (announced, recv) = Announced::new(self.clone(), msg.id, msg.track_namespace.clone());
+        let mut announced = announced;
+        announced.info.params = msg.params.clone();
         if let Err(announced) = self.announced_queue.push(announced) {
             announced.close(ServeError::Cancel)?;
             return Ok(());
@@ -271,7 +291,10 @@ impl Subscriber {
     /// Handle the reception of a SubscribeError message from the publisher.
     fn recv_subscribe_error(&mut self, msg: &message::SubscribeError) -> Result<(), SessionError> {
         if let Some(subscribe) = self.remove_subscribe(msg.id) {
-            subscribe.error(ServeError::Closed(msg.error_code))?;
+            subscribe.error(ServeError::ClosedWithReason {
+                code: msg.error_code,
+                reason: msg.reason_phrase.as_lossy_str().into_owned(),
+            })?;
         }
 
         Ok(())
@@ -295,7 +318,7 @@ impl Subscriber {
     }
 
     /// Remove an announced namespace from our map of active announces.
-    fn drop_publish_namespace(&mut self, namespace: &TrackNamespace) {
+    pub(super) fn drop_publish_namespace(&mut self, namespace: &TrackNamespace) {
         self.announced.lock().unwrap().remove(namespace);
     }
 

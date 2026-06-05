@@ -3,6 +3,58 @@
 
 use super::{Decode, DecodeError, Encode, EncodeError};
 
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct ReasonPhrase(pub Vec<u8>);
+
+impl ReasonPhrase {
+    pub const MAX_LEN: usize = 1024;
+
+    pub fn text(text: impl Into<String>) -> Self {
+        Self(text.into().into_bytes())
+    }
+
+    pub fn as_lossy_str(&self) -> std::borrow::Cow<'_, str> {
+        String::from_utf8_lossy(&self.0)
+    }
+}
+
+impl From<String> for ReasonPhrase {
+    fn from(value: String) -> Self {
+        Self::text(value)
+    }
+}
+
+impl From<&str> for ReasonPhrase {
+    fn from(value: &str) -> Self {
+        Self::text(value)
+    }
+}
+
+impl Encode for ReasonPhrase {
+    fn encode<W: bytes::BufMut>(&self, w: &mut W) -> Result<(), EncodeError> {
+        if self.0.len() > Self::MAX_LEN {
+            return Err(EncodeError::FieldBoundsExceeded("ReasonPhrase".to_string()));
+        }
+        self.0.len().encode(w)?;
+        Self::encode_remaining(w, self.0.len())?;
+        w.put_slice(&self.0);
+        Ok(())
+    }
+}
+
+impl Decode for ReasonPhrase {
+    fn decode<R: bytes::Buf>(r: &mut R) -> Result<Self, DecodeError> {
+        let size = usize::decode(r)?;
+        if size > Self::MAX_LEN {
+            return Err(DecodeError::FieldBoundsExceeded("ReasonPhrase".to_string()));
+        }
+        Self::decode_remaining(r, size)?;
+        let mut buf = vec![0; size];
+        r.copy_to_slice(&mut buf);
+        Ok(Self(buf))
+    }
+}
+
 macro_rules! bounded_string {
     ($name:ident, $max_len:expr) => {
         #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -44,7 +96,6 @@ macro_rules! bounded_string {
 }
 
 // Implementations of bounded strings
-bounded_string!(ReasonPhrase, 1024);
 bounded_string!(SessionUri, 8192);
 
 #[cfg(test)]
@@ -57,7 +108,7 @@ mod tests {
     fn encode_decode() {
         let mut buf = BytesMut::new();
 
-        let r = ReasonPhrase("testreason".to_string());
+        let r = ReasonPhrase::text("testreason");
         r.encode(&mut buf).unwrap();
         assert_eq!(
             buf.to_vec(),
@@ -71,10 +122,24 @@ mod tests {
     }
 
     #[test]
+    fn reason_phrase_allows_raw_bytes() {
+        let mut buf = BytesMut::new();
+
+        // draft-ietf-moq-privacy-pass-auth-02 requires MoQAuthChallenge
+        // bytes in the reason phrase. draft-ietf-moq-transport-18 says the
+        // field is UTF-8 text. For the interop demo, carry raw bytes and do
+        // not treat this field as human-readable unless UTF-8 decoding works.
+        let r = ReasonPhrase(vec![0xff, 0x00, 0x80]);
+        r.encode(&mut buf).unwrap();
+        let decoded = ReasonPhrase::decode(&mut buf).unwrap();
+        assert_eq!(decoded, r);
+    }
+
+    #[test]
     fn encode_too_large() {
         let mut buf = BytesMut::new();
 
-        let r = ReasonPhrase("x".repeat(1025));
+        let r = ReasonPhrase::text("x".repeat(1025));
         let encoded = r.encode(&mut buf);
         assert!(matches!(
             encoded.unwrap_err(),

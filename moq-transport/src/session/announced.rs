@@ -34,6 +34,7 @@ impl Announced {
         let info = AnnounceInfo {
             request_id,
             namespace,
+            params: Default::default(),
         };
 
         let (send, recv) = State::default().split();
@@ -99,15 +100,16 @@ impl Drop for Announced {
             self.session.send_message(message::PublishNamespaceCancel {
                 track_namespace: self.namespace.clone(),
                 error_code: err.code(),
-                reason_phrase: ReasonPhrase(err.to_string()),
+                reason_phrase: ReasonPhrase::text(err.reason()),
             });
         } else {
             self.session.send_message(message::PublishNamespaceError {
                 id: self.info.request_id,
                 error_code: err.code(),
-                reason_phrase: ReasonPhrase(err.to_string()),
+                reason_phrase: ReasonPhrase::text(err.reason()),
             });
         }
+        self.session.drop_publish_namespace(&self.info.namespace);
     }
 }
 

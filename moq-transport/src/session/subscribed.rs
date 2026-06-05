@@ -179,13 +179,13 @@ impl Drop for Subscribed {
                 id: self.info.id,
                 status_code: err.code(),
                 stream_count: 0, // TODO SLG
-                reason: ReasonPhrase(err.to_string()),
+                reason: ReasonPhrase::text(err.reason()),
             });
         } else {
             self.publisher.send_message(message::SubscribeError {
                 id: self.info.id,
                 error_code: err.code(),
-                reason_phrase: ReasonPhrase(err.to_string()),
+                reason_phrase: ReasonPhrase::text(err.reason()),
             });
         };
     }

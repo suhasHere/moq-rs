@@ -323,7 +323,7 @@ fn subscribe_error_to_json(msg: &message::SubscribeError) -> JsonValue {
     json!({
         "subscribe_id": msg.id,
         "error_code": msg.error_code,
-        "reason_phrase": &msg.reason_phrase.0,
+        "reason_phrase": msg.reason_phrase.as_lossy_str(),
     })
 }
 
@@ -430,7 +430,7 @@ fn publish_namespace_error_to_json(msg: &message::PublishNamespaceError) -> Json
     json!({
         "request_id": msg.id,
         "error_code": msg.error_code,
-        "reason_phrase": &msg.reason_phrase.0,
+        "reason_phrase": msg.reason_phrase.as_lossy_str(),
     })
 }
 

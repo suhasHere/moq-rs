@@ -48,11 +48,6 @@ async fn main() -> anyhow::Result<()> {
 
     let auth_raw = match &config.auth_token {
         Some(token) => encode_auth_token(config.auth_token_type, token.as_bytes()),
-        None if config.pp_issuer.is_some() => {
-            let issuer = config.pp_issuer.as_ref().unwrap();
-            let relay = config.pp_relay.as_ref().unwrap_or(&config.url);
-            privacypass::setup_auth(issuer, relay, config.tls.disable_verify).await?
-        }
         None => vec![],
     };
 
@@ -78,9 +73,32 @@ async fn main() -> anyhow::Result<()> {
     // Depending on whether we are publishing or subscribing, create the appropriate session
     if config.publish {
         // Create the publisher session
-        let (session, mut publisher) = Publisher::connect_with_auth(session, transport, auth_raw)
-            .await
-            .context("failed to create MoQ Transport session")?;
+        let (session, mut publisher) =
+            match Publisher::connect_with_auth(session, transport, auth_raw.clone()).await {
+                Ok(session) => session,
+                Err(err) if config.pp_issuer.is_some() && config.auth_token.is_none() => {
+                    let Some(auth) = privacypass::setup_auth_from_error(
+                        config.pp_issuer.as_ref().unwrap(),
+                        &err,
+                        config.tls.disable_verify,
+                    )
+                    .await?
+                    else {
+                        return Err(err).context("failed to create MoQ Transport session");
+                    };
+                    tracing::info!("retrying MoQ setup with Privacy Pass token");
+                    let (session, connection_id, transport) =
+                        quic.client.connect(&config.url, None).await?;
+                    tracing::info!(
+                        "reconnected with CID: {} (use this to look up qlog/mlog on server)",
+                        connection_id
+                    );
+                    Publisher::connect_with_auth(session, transport, auth)
+                        .await
+                        .context("failed to create MoQ Transport session")?
+                }
+                Err(err) => return Err(err).context("failed to create MoQ Transport session"),
+            };
 
         if config.datagrams {
             tracing::info!("publishing clock via datagrams");
@@ -117,9 +135,32 @@ async fn main() -> anyhow::Result<()> {
         }
     } else {
         // Create the subscriber session
-        let (session, mut subscriber) = Subscriber::connect_with_auth(session, transport, auth_raw)
-            .await
-            .context("failed to create MoQ Transport session")?;
+        let (session, mut subscriber) =
+            match Subscriber::connect_with_auth(session, transport, auth_raw.clone()).await {
+                Ok(session) => session,
+                Err(err) if config.pp_issuer.is_some() && config.auth_token.is_none() => {
+                    let Some(auth) = privacypass::setup_auth_from_error(
+                        config.pp_issuer.as_ref().unwrap(),
+                        &err,
+                        config.tls.disable_verify,
+                    )
+                    .await?
+                    else {
+                        return Err(err).context("failed to create MoQ Transport session");
+                    };
+                    tracing::info!("retrying MoQ setup with Privacy Pass token");
+                    let (session, connection_id, transport) =
+                        quic.client.connect(&config.url, None).await?;
+                    tracing::info!(
+                        "reconnected with CID: {} (use this to look up qlog/mlog on server)",
+                        connection_id
+                    );
+                    Subscriber::connect_with_auth(session, transport, auth)
+                        .await
+                        .context("failed to create MoQ Transport session")?
+                }
+                Err(err) => return Err(err).context("failed to create MoQ Transport session"),
+            };
 
         let track_namespace = TrackNamespace::from_utf8_path(&config.namespace);
 

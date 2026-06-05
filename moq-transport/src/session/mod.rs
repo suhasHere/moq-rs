@@ -709,7 +709,18 @@ impl Session {
 
         // TODO: emit client_setup_created event when we add that
 
-        let server: setup::Server = recver.decode().await?;
+        let server: setup::Server = match recver.decode().await {
+            Ok(server) => server,
+            Err(err) => {
+                if let Ok(close) =
+                    tokio::time::timeout(std::time::Duration::from_millis(200), session.closed())
+                        .await
+                {
+                    return Err(SessionError::WebTransport(close));
+                }
+                return Err(err);
+            }
+        };
         tracing::debug!(
             target: "moq_transport::control",
             direction = "recv",

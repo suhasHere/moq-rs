@@ -20,6 +20,7 @@ categories = ["multimedia", "network-programming", "web-programming"]
 moq-native-ietf = { path = "../moq-native-ietf", version = "0.8" }
 moq-auth-privacypass = { path = "../moq-auth-privacypass", version = "0.1" }
 moq-transport = { path = "../moq-transport", version = "0.14" }
+web-transport = { workspace = true }
 
 # QUIC
 url = "2"

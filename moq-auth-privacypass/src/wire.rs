@@ -13,6 +13,13 @@ pub fn setup_challenge_reason(issuer_name: &str) -> Result<String, MoqAuthChalle
     Ok(URL_SAFE_NO_PAD.encode(bytes))
 }
 
+pub fn decode_base64_reason(reason: &str) -> Result<MoqAuthChallenge, MoqAuthChallengeError> {
+    let bytes = URL_SAFE_NO_PAD
+        .decode(reason.as_bytes())
+        .map_err(|_| MoqAuthChallengeError::Decode)?;
+    MoqAuthChallenge::decode_from_reason_phrase(&bytes)
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MoqAuthChallenge {
     challenges: Vec<TokenChallenge>,

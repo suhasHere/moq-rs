@@ -274,6 +274,13 @@ async fn build_auth_hook(cli: &Cli) -> anyhow::Result<AuthConfig> {
         .with_setup_required(cli.pp_setup_required);
         let challenges = hook.challenges();
         let issuer_name = cli.pp_issuer.host_str().map(ToString::to_string);
+        if let Some(issuer_name) = issuer_name.as_deref() {
+            let setup_scope = moq_auth_privacypass::ChallengeScope::setup();
+            let setup_challenge = setup_scope.token_challenge(issuer_name);
+            challenges
+                .insert(setup_challenge.digest()?, setup_scope)
+                .await;
+        }
         tracing::info!(issuer = %cli.pp_issuer, setup_required = cli.pp_setup_required, "Privacy Pass auth enabled");
         return Ok(AuthConfig {
             hook: Some(Arc::new(hook)),

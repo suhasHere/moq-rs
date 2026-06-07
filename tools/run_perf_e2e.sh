@@ -85,6 +85,7 @@ fi
 
 $SSH "bash -s" <<PERF_SCRIPT
 set -e
+ulimit -n 65536
 cd ~/moq-rs-top-n
 source ~/.cargo/env
 mkdir -p $REMOTE_DIR

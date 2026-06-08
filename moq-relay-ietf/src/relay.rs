@@ -6,6 +6,9 @@ use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
 use moq_native_ietf::quic::{self, Endpoint};
 use url::Url;
 
+use moq_auth::AuthHook;
+use moq_transport::setup::ParameterType;
+
 use crate::{
     Consumer, Coordinator, Locals, Producer, Remotes, RemotesConsumer, RemotesProducer, Session,
     SubscriberRegistry, TieBreakPolicy,
@@ -56,6 +59,9 @@ pub struct RelayConfig {
 
     /// Tie-break policy for top-N filtering
     pub tie_break_policy: TieBreakPolicy,
+
+    /// Auth hook for C4M token verification
+    pub auth_hook: Arc<dyn AuthHook>,
 }
 
 /// MoQ Relay server.
@@ -67,6 +73,7 @@ pub struct Relay {
     remotes: Option<(RemotesProducer, RemotesConsumer)>,
     coordinator: Arc<dyn Coordinator>,
     subscriber_registry: SubscriberRegistry,
+    auth_hook: Arc<dyn AuthHook>,
 }
 
 impl Relay {
@@ -133,6 +140,7 @@ impl Relay {
             remotes: Some(remotes),
             coordinator: config.coordinator,
             subscriber_registry,
+            auth_hook: config.auth_hook,
         })
     }
 
@@ -239,17 +247,55 @@ impl Relay {
                     let forward = forward_producer.clone();
                     let coordinator = self.coordinator.clone();
                     let subscriber_registry = self.subscriber_registry.clone();
+                    let auth_hook = self.auth_hook.clone();
 
                     // Spawn a new task to handle the connection
                     tasks.push(async move {
                         // Create the MoQ session over the connection (setup handshake etc)
-                        let (session, publisher, subscriber) = match moq_transport::session::Session::accept(conn, mlog_path).await {
+                        let (session, publisher, subscriber, client_params) = match moq_transport::session::Session::accept_with_params(conn, mlog_path).await {
                             Ok(session) => session,
                             Err(err) => {
                                 log::warn!("failed to accept MoQ session: {}", err);
                                 return Ok(());
                             }
                         };
+
+                        // Extract auth token from CLIENT_SETUP params
+                        let auth_blobs: Vec<moq_auth::AuthBlob> = client_params
+                            .get(ParameterType::AuthorizationToken.into())
+                            .and_then(|kvp| match &kvp.value {
+                                moq_transport::coding::Value::BytesValue(bytes) => {
+                                    Some(vec![moq_auth::AuthBlob {
+                                        token_type: 0,
+                                        token_value: bytes::Bytes::from(bytes.clone()),
+                                    }])
+                                }
+                                _ => None,
+                            })
+                            .unwrap_or_default();
+
+                        // Verify auth token
+                        let ctx = moq_auth::SessionContext {
+                            session_id: 0,
+                            connection_path: None,
+                            peer: "0.0.0.0:0".parse().unwrap(),
+                        };
+                        match auth_hook.on_setup(&ctx, &auth_blobs).await {
+                            Ok(decision) if decision.is_allowed() => {
+                                log::debug!("auth on_setup: allowed");
+                            }
+                            Ok(decision) => {
+                                log::info!(
+                                    "auth on_setup: denied ({:?}), closing session",
+                                    decision.verdict
+                                );
+                                return Ok(());
+                            }
+                            Err(err) => {
+                                log::error!("auth hook on_setup failed: {}", err);
+                                return Ok(());
+                            }
+                        }
 
                         // Create our MoQ relay session
                         // Use connection_id hash as session_id for self-exclusion in pub/sub

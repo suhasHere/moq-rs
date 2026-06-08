@@ -10,6 +10,8 @@ members = [
 	"moq-catalog",
 	"moq-test-client",
 	"moq-topn-test",
+	"moq-auth",
+	"moq-auth-cat",
 ]
 resolver = "2"
 

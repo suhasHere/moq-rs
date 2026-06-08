@@ -23,6 +23,8 @@ path = "src/bin/moq-relay-ietf/main.rs"
 moq-transport = { path = "../moq-transport", version = "0.12" }
 moq-native-ietf = { path = "../moq-native-ietf", version = "0.7" }
 moq-api = { path = "../moq-api", version = "0.2" }
+moq-auth = { path = "../moq-auth", version = "0.1" }
+moq-auth-cat = { path = "../moq-auth-cat", version = "0.1", optional = true }
 web-transport = { workspace = true }
 
 # QUIC
@@ -65,4 +67,11 @@ thiserror = "2.0.17"
 
 # misc
 #once_cell = "1.21.3"
+bytes = "1"
+
+p256 = { version = "0.13", features = ["ecdsa", "pem", "pkcs8"], optional = true }
 arc-swap = "1"
+
+[features]
+default = []
+auth-cat = ["dep:moq-auth-cat", "dep:p256"]

@@ -139,6 +139,15 @@ impl Session {
         session: web_transport::Session,
         mlog_path: Option<PathBuf>,
     ) -> Result<(Session, Option<Publisher>, Option<Subscriber>), SessionError> {
+        let (session, publisher, subscriber, _client_params) =
+            Self::accept_with_params(session, mlog_path).await?;
+        Ok((session, publisher, subscriber))
+    }
+
+    pub async fn accept_with_params(
+        session: web_transport::Session,
+        mlog_path: Option<PathBuf>,
+    ) -> Result<(Session, Option<Publisher>, Option<Subscriber>, KeyValuePairs), SessionError> {
         let mut mlog = mlog_path.and_then(|path| {
             mlog::MlogWriter::new(path)
                 .map_err(|e| log::warn!("Failed to create mlog: {}", e))
@@ -174,7 +183,8 @@ impl Session {
         sender.encode(&server).await?;
 
         // We are the server, so the first request id is 1
-        Ok(Session::new(session, sender, recver, 1, mlog))
+        let s = Session::new(session, sender, recver, 1, mlog);
+        Ok((s.0, s.1, s.2, client.params))
     }
 
     /// Run Tasks for the session, including sending of control messages, receiving and processing

@@ -261,14 +261,12 @@ impl Relay {
                         };
 
                         // Extract auth token from CLIENT_SETUP params
+                        // Format: token_type (varint) || token_value (remaining bytes)
                         let auth_blobs: Vec<moq_auth::AuthBlob> = client_params
                             .get(ParameterType::AuthorizationToken.into())
                             .and_then(|kvp| match &kvp.value {
                                 moq_transport::coding::Value::BytesValue(bytes) => {
-                                    Some(vec![moq_auth::AuthBlob {
-                                        token_type: 0,
-                                        token_value: bytes::Bytes::from(bytes.clone()),
-                                    }])
+                                    parse_auth_token_param(bytes)
                                 }
                                 _ => None,
                             })
@@ -341,4 +339,42 @@ impl Relay {
             }
         }
     }
+}
+
+fn parse_auth_token_param(bytes: &[u8]) -> Option<Vec<moq_auth::AuthBlob>> {
+    if bytes.is_empty() {
+        return None;
+    }
+
+    // Parse token_type as a varint from the beginning
+    let mut pos = 0;
+    let first = *bytes.get(pos)?;
+    let (token_type, varint_len) = match first >> 6 {
+        0 => (first as u64 & 0x3f, 1),
+        1 => {
+            let b = bytes.get(pos..pos + 2)?;
+            let val = u16::from_be_bytes([b[0] & 0x3f, b[1]]);
+            (val as u64, 2)
+        }
+        2 => {
+            let b = bytes.get(pos..pos + 4)?;
+            let val = u32::from_be_bytes([b[0] & 0x3f, b[1], b[2], b[3]]);
+            (val as u64, 4)
+        }
+        3 => {
+            let b = bytes.get(pos..pos + 8)?;
+            let val = u64::from_be_bytes([b[0] & 0x3f, b[1], b[2], b[3], b[4], b[5], b[6], b[7]]);
+            (val, 8)
+        }
+        _ => unreachable!(),
+    };
+    pos += varint_len;
+
+    let token_value = bytes.get(pos..)?.to_vec();
+    log::debug!("parsed auth token: type=0x{:x}, value_len={}", token_type, token_value.len());
+
+    Some(vec![moq_auth::AuthBlob {
+        token_type,
+        token_value: bytes::Bytes::from(token_value),
+    }])
 }

@@ -394,7 +394,7 @@ impl SubscriberRegistry {
 
     /// Remove a track from TopN tracking
     pub fn remove_track(&self, namespace: &TrackNamespace, track_name: &str) {
-        let inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.lock().unwrap();
 
         for ((prefix, _pt), tracker) in inner.top_n_trackers.iter() {
             if Self::prefix_matches(prefix, namespace) {
@@ -406,6 +406,15 @@ impl SubscriberRegistry {
                     prefix
                 );
             }
+        }
+
+        // Clear published_tracks entries so re-publish triggers notification
+        inner.published_tracks.retain(|(_sub_id, ns, tn)| {
+            !(ns == namespace && tn == track_name)
+        });
+        // Also clear per-subscription index
+        for entries in inner.subscription_published.values_mut() {
+            entries.retain(|(ns, tn)| !(ns == namespace && tn == track_name));
         }
     }
 

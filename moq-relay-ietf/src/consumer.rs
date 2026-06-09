@@ -332,6 +332,9 @@ impl Consumer {
         // This will trigger forwarding to matching SUBSCRIBE_NAMESPACE subscriptions
         // Uses session_id for self-exclusion (don't notify the same session that sent the PUBLISH)
         if let Some(ref registry) = self.subscriber_registry {
+            // Clear stale dedup entries for this track (handles re-publish after PUBLISH_DONE)
+            registry.remove_track(&namespace, &track_name);
+
             let notified = registry.notify_publish(&namespace, &track_name, track_alias, self.session_id);
             if notified > 0 {
                 log::info!(

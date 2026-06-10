@@ -5,11 +5,13 @@ use async_trait::async_trait;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
 use moq_auth::{AuthBlob, AuthDecision, AuthHook, DenyReason, RequestContext, SessionContext};
+use rsa::pkcs1::DecodeRsaPublicKey;
+use rsa::pkcs8::DecodePublicKey;
 use rsa::pss::{Signature, VerifyingKey as PssVerifyingKey};
 use rsa::signature::Verifier;
-use rsa::pkcs8::DecodePublicKey;
 use rsa::RsaPublicKey;
 use sha2::Sha384;
+use spki::SubjectPublicKeyInfoRef;
 use tokio::sync::RwLock;
 
 pub const PRIVACY_PASS_TOKEN_TYPE: u64 = 0x0002;
@@ -180,8 +182,18 @@ pub async fn fetch_issuer_keys(issuer_url: &str) -> anyhow::Result<Vec<RsaPublic
             .decode(key_b64)
             .or_else(|_| base64::engine::general_purpose::STANDARD.decode(key_b64))?;
 
-        let public_key = rsa::RsaPublicKey::from_public_key_der(&key_bytes)
-            .map_err(|e| anyhow!("failed to parse RSA key: {e}"))?;
+        // The issuer key is SPKI-encoded (may use RSASSA-PSS OID).
+        // Extract the raw RSA public key from the SubjectPublicKeyInfo structure.
+        let public_key = match RsaPublicKey::from_public_key_der(&key_bytes) {
+            Ok(k) => k,
+            Err(_) => {
+                // Parse SPKI to extract the raw public key bitstring, then decode as PKCS#1
+                let spki = SubjectPublicKeyInfoRef::try_from(key_bytes.as_slice())
+                    .map_err(|e| anyhow!("failed to parse SPKI: {e}"))?;
+                RsaPublicKey::from_pkcs1_der(spki.subject_public_key.raw_bytes())
+                    .map_err(|e| anyhow!("failed to parse RSA key from SPKI: {e}"))?
+            }
+        };
         rsa_keys.push(public_key);
     }
 

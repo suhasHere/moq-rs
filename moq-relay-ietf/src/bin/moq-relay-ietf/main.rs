@@ -245,10 +245,10 @@ async fn build_auth_hook(cli: &Cli) -> anyhow::Result<Arc<dyn AuthHook>> {
 
     #[cfg(feature = "auth-privacypass")]
     if let Some(issuer_url) = &cli.auth_pp_issuer {
-        let keys = moq_auth_privacypass::fetch_issuer_keys(issuer_url).await
+        let (blind_rsa_keys, pbrs_keys) = moq_auth_privacypass::fetch_issuer_keys(issuer_url).await
             .map_err(|e| anyhow::anyhow!("Failed to fetch PP issuer keys: {e}"))?;
-        log::info!("Privacy Pass auth enabled with {} issuer key(s)", keys.len());
-        let hook = PrivacyPassAuthHook::new(keys).with_setup_required(false);
+        log::info!("Privacy Pass auth enabled with {} issuer key(s)", blind_rsa_keys.len() + pbrs_keys.len());
+        let hook = PrivacyPassAuthHook::new(blind_rsa_keys, pbrs_keys).with_setup_required(false);
         hooks.push(Arc::new(hook));
     }
 

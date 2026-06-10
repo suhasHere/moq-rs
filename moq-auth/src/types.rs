@@ -59,6 +59,8 @@ pub struct AuthDecision {
     pub verdict: Verdict,
     /// Optional opaque principal identifier for logging and metrics.
     pub principal: Option<String>,
+    /// Optional scope string (e.g., JSON-encoded MoQ action allowlist).
+    pub scope: Option<String>,
 }
 
 impl AuthDecision {
@@ -66,6 +68,7 @@ impl AuthDecision {
         Self {
             verdict: Verdict::Allow,
             principal: None,
+            scope: None,
         }
     }
 
@@ -73,11 +76,17 @@ impl AuthDecision {
         Self {
             verdict: Verdict::Deny(reason),
             principal: None,
+            scope: None,
         }
     }
 
     pub fn with_principal(mut self, principal: impl Into<Option<String>>) -> Self {
         self.principal = principal.into();
+        self
+    }
+
+    pub fn with_scope(mut self, scope: impl Into<Option<String>>) -> Self {
+        self.scope = scope.into();
         self
     }
 

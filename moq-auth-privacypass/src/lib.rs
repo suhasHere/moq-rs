@@ -103,7 +103,7 @@ impl PrivacyPassAuthHook {
 
         let keys = self.issuer_keys.read().await;
         for key in keys.iter() {
-            let verifying_key = PssVerifyingKey::<Sha384>::new(key.clone());
+            let verifying_key = PssVerifyingKey::<Sha384>::new_with_salt_len(key.clone(), 0);
             if verifying_key.verify(&auth_input, &signature).is_ok() {
                 return Ok(AuthDecision::allow().with_principal(Some("privacy-pass".to_string())));
             }

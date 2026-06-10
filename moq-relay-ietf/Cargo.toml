@@ -25,6 +25,7 @@ moq-native-ietf = { path = "../moq-native-ietf", version = "0.7" }
 moq-api = { path = "../moq-api", version = "0.2" }
 moq-auth = { path = "../moq-auth", version = "0.1" }
 moq-auth-cat = { path = "../moq-auth-cat", version = "0.1", optional = true }
+moq-auth-privacypass = { path = "../moq-auth-privacypass", version = "0.1", optional = true }
 web-transport = { workspace = true }
 
 # QUIC
@@ -75,3 +76,4 @@ arc-swap = "1"
 [features]
 default = []
 auth-cat = ["dep:moq-auth-cat", "dep:p256"]
+auth-privacypass = ["dep:moq-auth-privacypass"]

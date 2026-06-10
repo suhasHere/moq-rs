@@ -4,6 +4,7 @@ mod file_coordinator;
 use std::sync::Arc;
 use std::{net, path::PathBuf};
 
+use async_trait::async_trait;
 use clap::Parser;
 use url::Url;
 
@@ -14,6 +15,9 @@ use moq_relay_ietf::{Coordinator, Relay, RelayConfig, TieBreakPolicy, Web, WebCo
 
 #[cfg(feature = "auth-cat")]
 use moq_auth_cat::{C4MAuthHook, C4MConfig};
+
+#[cfg(feature = "auth-privacypass")]
+use moq_auth_privacypass::PrivacyPassAuthHook;
 
 #[derive(Parser, Clone)]
 pub struct Cli {
@@ -108,6 +112,11 @@ pub struct Cli {
     /// Expected token audience for C4M auth (repeatable).
     #[arg(long)]
     pub auth_cat_audience: Vec<String>,
+
+    /// Privacy Pass issuer directory URL (fetches public keys for token verification).
+    /// Requires the `auth-privacypass` feature.
+    #[arg(long)]
+    pub auth_pp_issuer: Option<String>,
 }
 
 #[tokio::main]
@@ -169,7 +178,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // Build the auth hook
-    let auth_hook: Arc<dyn AuthHook> = build_auth_hook(&cli)?;
+    let auth_hook: Arc<dyn AuthHook> = build_auth_hook(&cli).await?;
 
     // Create a QUIC server for media.
     let relay = Relay::new(RelayConfig {
@@ -204,13 +213,15 @@ async fn main() -> anyhow::Result<()> {
     relay.run().await
 }
 
-#[cfg(feature = "auth-cat")]
-fn build_auth_hook(cli: &Cli) -> anyhow::Result<Arc<dyn AuthHook>> {
-    use moq_auth_cat::Es256Algorithm;
-    use p256::ecdsa::VerifyingKey;
-    use p256::pkcs8::DecodePublicKey;
+async fn build_auth_hook(cli: &Cli) -> anyhow::Result<Arc<dyn AuthHook>> {
+    let mut hooks: Vec<Arc<dyn AuthHook>> = Vec::new();
 
+    #[cfg(feature = "auth-cat")]
     if let Some(key_path) = &cli.auth_cat_public_key {
+        use moq_auth_cat::Es256Algorithm;
+        use p256::ecdsa::VerifyingKey;
+        use p256::pkcs8::DecodePublicKey;
+
         let pem_data = std::fs::read_to_string(key_path)
             .map_err(|e| anyhow::anyhow!("reading C4M public key from {}: {}", key_path.display(), e))?;
 
@@ -229,16 +240,58 @@ fn build_auth_hook(cli: &Cli) -> anyhow::Result<Arc<dyn AuthHook>> {
 
         let hook = C4MAuthHook::new(config);
         log::info!("C4M auth enabled with key {}", key_path.display());
-        Ok(Arc::new(hook))
-    } else {
-        Ok(Arc::new(moq_auth::hooks::AllowAllAuthHook))
+        hooks.push(Arc::new(hook));
     }
+
+    #[cfg(feature = "auth-privacypass")]
+    if let Some(issuer_url) = &cli.auth_pp_issuer {
+        let keys = moq_auth_privacypass::fetch_issuer_keys(issuer_url).await
+            .map_err(|e| anyhow::anyhow!("Failed to fetch PP issuer keys: {e}"))?;
+        log::info!("Privacy Pass auth enabled with {} issuer key(s)", keys.len());
+        let hook = PrivacyPassAuthHook::new(keys).with_setup_required(false);
+        hooks.push(Arc::new(hook));
+    }
+
+    if hooks.is_empty() {
+        return Ok(Arc::new(moq_auth::hooks::AllowAllAuthHook));
+    }
+    if hooks.len() == 1 {
+        return Ok(hooks.remove(0));
+    }
+    Ok(Arc::new(MultiAuthHook { hooks }))
 }
 
-#[cfg(not(feature = "auth-cat"))]
-fn build_auth_hook(cli: &Cli) -> anyhow::Result<Arc<dyn AuthHook>> {
-    if cli.auth_cat_public_key.is_some() {
-        anyhow::bail!("--auth-cat-public-key requires the `auth-cat` feature. Rebuild with --features auth-cat");
+struct MultiAuthHook {
+    hooks: Vec<Arc<dyn AuthHook>>,
+}
+
+#[async_trait]
+impl AuthHook for MultiAuthHook {
+    async fn on_setup(
+        &self,
+        ctx: &moq_auth::SessionContext,
+        tokens: &[moq_auth::AuthBlob],
+    ) -> anyhow::Result<moq_auth::AuthDecision> {
+        for hook in &self.hooks {
+            let decision = hook.on_setup(ctx, tokens).await?;
+            if decision.is_allowed() {
+                return Ok(decision);
+            }
+        }
+        Ok(moq_auth::AuthDecision::deny(moq_auth::DenyReason::TokenMissing))
     }
-    Ok(Arc::new(moq_auth::hooks::AllowAllAuthHook))
+
+    async fn on_request(
+        &self,
+        ctx: &moq_auth::RequestContext<'_>,
+        tokens: &[moq_auth::AuthBlob],
+    ) -> anyhow::Result<moq_auth::AuthDecision> {
+        for hook in &self.hooks {
+            let decision = hook.on_request(ctx, tokens).await?;
+            if decision.is_allowed() {
+                return Ok(decision);
+            }
+        }
+        Ok(moq_auth::AuthDecision::deny(moq_auth::DenyReason::TokenMissing))
+    }
 }

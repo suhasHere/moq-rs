@@ -12,6 +12,7 @@ members = [
 	"moq-topn-test",
 	"moq-auth",
 	"moq-auth-cat",
+	"moq-auth-privacypass",
 ]
 resolver = "2"
 

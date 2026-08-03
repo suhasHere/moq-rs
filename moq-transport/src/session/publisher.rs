@@ -185,7 +185,10 @@ impl Publisher {
             .fetch_add(1, atomic::Ordering::Relaxed);
 
         let mut params = KeyValuePairs::new();
-        params.set_intvalue(ParameterType::GroupOrder.into(), GroupOrder::Ascending as u64);
+        params.set_intvalue(
+            ParameterType::GroupOrder.into(),
+            GroupOrder::Ascending as u64,
+        );
         params.set_intvalue(ParameterType::Forward.into(), 1);
         if let Some(loc) = track.largest_location() {
             let mut buf = bytes::BytesMut::new();
@@ -259,7 +262,10 @@ impl Publisher {
             .fetch_add(1, atomic::Ordering::Relaxed);
 
         let mut params = KeyValuePairs::new();
-        params.set_intvalue(ParameterType::GroupOrder.into(), GroupOrder::Ascending as u64);
+        params.set_intvalue(
+            ParameterType::GroupOrder.into(),
+            GroupOrder::Ascending as u64,
+        );
         params.set_intvalue(ParameterType::Forward.into(), 1);
         if let Some(loc) = track.largest_location() {
             let mut buf = bytes::BytesMut::new();
@@ -357,8 +363,18 @@ impl Publisher {
     }
 
     fn recv_publish_ok(&mut self, msg: message::PublishOk) -> Result<(), SessionError> {
+        let forward = msg.params.get_intvalue(0x10);
+        log::info!(
+            "[recv_publish_ok] id={}, forward={:?}, publisheds_count={}",
+            msg.id,
+            forward,
+            self.publisheds.lock().unwrap().len()
+        );
         if let Some(published) = self.publisheds.lock().unwrap().get_mut(&msg.id) {
+            log::info!("[recv_publish_ok] found PublishedRecv for id={}", msg.id);
             published.recv_ok(&msg)?;
+        } else {
+            log::warn!("[recv_publish_ok] NO PublishedRecv for id={}", msg.id);
         }
 
         Ok(())
@@ -475,7 +491,10 @@ impl Publisher {
         let msg = self.act_on_message_to_send(msg);
         let msg_name = format!("{:?}", msg);
         let msg: Message = msg.into();
-        log::debug!("[PUBLISHER] send_message: pushing {:?} to outgoing queue", msg_name);
+        log::debug!(
+            "[PUBLISHER] send_message: pushing {:?} to outgoing queue",
+            msg_name
+        );
         match self.outgoing.push(msg) {
             Ok(()) => log::debug!("[PUBLISHER] send_message: push succeeded"),
             Err(_) => log::warn!("[PUBLISHER] send_message: push FAILED (queue closed?)"),

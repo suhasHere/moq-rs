@@ -202,7 +202,10 @@ impl Published {
     /// Serve immediately without waiting for PUBLISH_OK.
     /// Use this for relay scenarios where you want to start forwarding data right away.
     /// The subscriber will receive data as soon as they're ready.
-    pub async fn serve_immediately(mut self, track: serve::TrackReader) -> Result<(), SessionError> {
+    pub async fn serve_immediately(
+        mut self,
+        track: serve::TrackReader,
+    ) -> Result<(), SessionError> {
         let res = self.serve_immediately_inner(track).await;
         if let Err(err) = &res {
             self.close(err.clone().into())?;
@@ -215,7 +218,15 @@ impl Published {
         track: serve::TrackReader,
         observer: Option<Arc<ObjectObserverFn>>,
     ) -> Result<(), SessionError> {
+        log::info!(
+            "[serve_inner] waiting for ok (request_id={})",
+            self.info.id
+        );
         self.ok().await?;
+        log::info!(
+            "[serve_inner] ok received (request_id={})",
+            self.info.id
+        );
 
         let forward = {
             let state = self.state.lock();
@@ -223,13 +234,25 @@ impl Published {
         };
 
         if !forward {
+            log::info!(
+                "[serve_inner] forward=false, closing (request_id={})",
+                self.info.id
+            );
             self.closed().await?;
             return Ok(());
         }
 
+        log::info!(
+            "[serve_inner] waiting for mode (request_id={})",
+            self.info.id
+        );
         match track.mode().await? {
             TrackReaderMode::Stream(_stream) => panic!("deprecated"),
             TrackReaderMode::Subgroups(subgroups) => {
+                log::info!(
+                    "[serve_inner] got Subgroups mode, starting serve (request_id={})",
+                    self.info.id
+                );
                 self.serve_subgroups(subgroups, observer).await
             }
             TrackReaderMode::Datagrams(datagrams) => self.serve_datagrams(datagrams).await,
@@ -256,7 +279,10 @@ impl Published {
         }
     }
 
-    async fn serve_immediately_inner(&mut self, track: serve::TrackReader) -> Result<(), SessionError> {
+    async fn serve_immediately_inner(
+        &mut self,
+        track: serve::TrackReader,
+    ) -> Result<(), SessionError> {
         // Don't wait for PUBLISH_OK - start streaming immediately
         // This is useful for relay scenarios where we want minimal latency
 
@@ -477,10 +503,7 @@ impl Published {
             state
                 .lock_mut()
                 .ok_or(ServeError::Done)?
-                .update_largest_location(
-                    subgroup_reader.group_id,
-                    object_reader.object_id,
-                )?;
+                .update_largest_location(subgroup_reader.group_id, object_reader.object_id)?;
 
             while let Some(chunk) = object_reader.read().await? {
                 writer.write(&chunk).await?;
@@ -689,7 +712,10 @@ impl PublishedRecv {
             if let Some(v) = msg.params.get_intvalue(ParameterType::Forward.into()) {
                 state.forward = v == 1;
             }
-            if let Some(v) = msg.params.get_intvalue(ParameterType::SubscriberPriority.into()) {
+            if let Some(v) = msg
+                .params
+                .get_intvalue(ParameterType::SubscriberPriority.into())
+            {
                 state.subscriber_priority = v as u8;
             }
             if let Some(v) = msg.params.get_intvalue(ParameterType::GroupOrder.into()) {

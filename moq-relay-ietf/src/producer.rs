@@ -198,24 +198,28 @@ impl Producer {
         // TRACK_FILTER key is 0x12 (even = int value)
         // Value format: (property_type << 8) | max_selected packed into u64
         const TRACK_FILTER_KEY: u64 = 0x12;
-        let track_filter = subscribe_ns.info.params.get(TRACK_FILTER_KEY).and_then(|kvp| {
-            if let moq_transport::coding::Value::IntValue(packed) = &kvp.value {
-                // Unpack: property_type in high byte, max_selected in low byte
-                let property_type = (*packed >> 8) & 0xFF;
-                let max_selected = (*packed & 0xFF) as u8;
-                log::info!(
-                    "parsed TRACK_FILTER: property_type={}, max_selected={}",
-                    property_type,
-                    max_selected
-                );
-                Some(crate::TrackFilter {
-                    property_type,
-                    max_selected,
-                })
-            } else {
-                None
-            }
-        });
+        let track_filter = subscribe_ns
+            .info
+            .params
+            .get(TRACK_FILTER_KEY)
+            .and_then(|kvp| {
+                if let moq_transport::coding::Value::IntValue(packed) = &kvp.value {
+                    // Unpack: property_type in high byte, max_selected in low byte
+                    let property_type = (*packed >> 8) & 0xFF;
+                    let max_selected = (*packed & 0xFF) as u8;
+                    log::info!(
+                        "parsed TRACK_FILTER: property_type={}, max_selected={}",
+                        property_type,
+                        max_selected
+                    );
+                    Some(crate::TrackFilter {
+                        property_type,
+                        max_selected,
+                    })
+                } else {
+                    None
+                }
+            });
 
         // Register with subscriber registry to receive PUBLISH and PUBLISH_NAMESPACE notifications
         // Uses session_id so we can exclude PUBLISH messages from the same session (self-exclusion)
@@ -265,72 +269,45 @@ impl Producer {
 
             let track_reader = track_info.get_reader();
             let mut publisher = self.publisher.clone();
-            let registry = self.subscriber_registry.clone();
-            let session_id = self.session_id;
 
             tokio::spawn(async move {
-                match publisher.publish_with_extensions(track_reader.clone(), track_extensions).await {
+                match publisher
+                    .publish_with_extensions(track_reader.clone(), track_extensions)
+                    .await
+                {
                     Ok(published) => {
                         log::info!(
-                            "sent PUBLISH for existing track {}/{}, waiting for PUBLISH_OK",
+                            "sent PUBLISH for existing track {}/{} (request_id={}), starting serve",
                             ns,
-                            track_name
+                            track_name,
+                            published.info.id
                         );
-                        // Create filter-only observer (update_track_value is handled by ingest observer in Consumer)
-                        let observer = if let Some(ref reg) = registry {
-                            let reg = reg.clone();
-                            let ns_for_observer = ns.clone();
-                            let name_for_observer = track_name.clone();
-                            let track_filter = reg.get_track_filter_for_session(session_id);
-                            let epoch = reg.snapshot_epoch();
-                            let cached_epoch = AtomicU64::new(u64::MAX);
-                            let cached_result = AtomicBool::new(true);
-                            if track_filter.is_some() {
-                                Some(moq_transport::session::ObjectObserverFn::from(
-                                    Box::new(move |_group_id: u64, _object_id: u64, _ext_headers: &moq_transport::data::ExtensionHeaders| {
-                                        if let Some(ref filter) = track_filter {
-                                            let current_epoch = epoch.load(Ordering::Acquire);
-                                            if current_epoch != cached_epoch.load(Ordering::Relaxed) {
-                                                let in_top_n = reg.is_track_in_top_n(
-                                                    &ns_for_observer,
-                                                    &name_for_observer,
-                                                    session_id,
-                                                    filter.property_type,
-                                                    filter.max_selected,
-                                                );
-                                                cached_epoch.store(current_epoch, Ordering::Relaxed);
-                                                cached_result.store(in_top_n, Ordering::Relaxed);
-                                            }
-                                            cached_result.load(Ordering::Relaxed)
-                                        } else {
-                                            true
-                                        }
-                                    }) as Box<dyn Fn(u64, u64, &moq_transport::data::ExtensionHeaders) -> bool + Send + Sync>
-                                ))
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        };
 
-                        let result = if let Some(obs) = observer {
-                            published.serve_with_observer(track_reader, obs).await
-                        } else {
-                            published.serve(track_reader).await
-                        };
-
-                        match result {
+                        match published.serve(track_reader).await {
                             Ok(()) => {
-                                log::info!("existing track {}/{} serving completed", ns, track_name);
+                                log::info!(
+                                    "existing track {}/{} serving completed",
+                                    ns,
+                                    track_name
+                                );
                             }
                             Err(e) => {
-                                log::warn!("existing track {}/{} serving ended: {}", ns, track_name, e);
+                                log::warn!(
+                                    "existing track {}/{} serving ended: {}",
+                                    ns,
+                                    track_name,
+                                    e
+                                );
                             }
                         }
                     }
                     Err(e) => {
-                        log::warn!("failed to send PUBLISH for existing track {}/{}: {}", ns, track_name, e);
+                        log::warn!(
+                            "failed to send PUBLISH for existing track {}/{}: {}",
+                            ns,
+                            track_name,
+                            e
+                        );
                     }
                 }
             });

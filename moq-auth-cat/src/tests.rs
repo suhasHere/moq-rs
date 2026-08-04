@@ -4,12 +4,8 @@
 use std::net::SocketAddr;
 
 use bytes::Bytes;
-use cat_token::{
-    CatTokenBuilder, Es256Algorithm, MoqtAction, MoqtScopeBuilder, encode_token,
-};
-use moq_auth::{
-    AuthBlob, AuthHook, AuthzOperation, RequestContext, SessionContext,
-};
+use cat_token::{encode_token, CatTokenBuilder, Es256Algorithm, MoqtAction, MoqtScopeBuilder};
+use moq_auth::{AuthBlob, AuthHook, AuthzOperation, RequestContext, SessionContext};
 use moq_transport::coding::TrackNamespace;
 
 use crate::{C4MAuthHook, C4MConfig, C4M_TOKEN_TYPE};
@@ -24,9 +20,7 @@ fn test_session_ctx() -> SessionContext {
 
 fn make_hook_and_key() -> (C4MAuthHook, Es256Algorithm) {
     let signing_key = Es256Algorithm::new_with_key_pair().unwrap();
-    let verifying_key = Es256Algorithm::new_verifier(
-        signing_key.verifying_key().clone(),
-    );
+    let verifying_key = Es256Algorithm::new_verifier(signing_key.verifying_key().clone());
 
     let config = C4MConfig::new(verifying_key)
         .with_expected_issuers(vec!["test-issuer".to_string()])
@@ -237,9 +231,7 @@ async fn malformed_token_denies() {
 #[tokio::test]
 async fn wrong_issuer_denies() {
     let signing_key = Es256Algorithm::new_with_key_pair().unwrap();
-    let verifying_key = Es256Algorithm::new_verifier(
-        signing_key.verifying_key().clone(),
-    );
+    let verifying_key = Es256Algorithm::new_verifier(signing_key.verifying_key().clone());
 
     let config = C4MConfig::new(verifying_key)
         .with_expected_issuers(vec!["expected-issuer".to_string()])
@@ -269,9 +261,7 @@ async fn wrong_issuer_denies() {
 #[tokio::test]
 async fn wrong_audience_denies() {
     let signing_key = Es256Algorithm::new_with_key_pair().unwrap();
-    let verifying_key = Es256Algorithm::new_verifier(
-        signing_key.verifying_key().clone(),
-    );
+    let verifying_key = Es256Algorithm::new_verifier(signing_key.verifying_key().clone());
 
     let config = C4MConfig::new(verifying_key)
         .with_expected_issuers(vec!["test-issuer".to_string()])
@@ -327,9 +317,7 @@ async fn token_without_client_setup_scope_denies_setup() {
 async fn invalid_signature_denies() {
     let signing_key = Es256Algorithm::new_with_key_pair().unwrap();
     let different_key = Es256Algorithm::new_with_key_pair().unwrap();
-    let verifying_key = Es256Algorithm::new_verifier(
-        different_key.verifying_key().clone(),
-    );
+    let verifying_key = Es256Algorithm::new_verifier(different_key.verifying_key().clone());
 
     let config = C4MConfig::new(verifying_key)
         .with_expected_issuers(vec!["test-issuer".to_string()])

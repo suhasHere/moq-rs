@@ -48,11 +48,7 @@ impl SubscribeNs {
             namespace_prefix: namespace_prefix.clone(),
         };
 
-        let mut msg = message::SubscribeNamespace::new(
-            request_id,
-            namespace_prefix,
-            1,
-        );
+        let mut msg = message::SubscribeNamespace::new(request_id, namespace_prefix, 1);
         msg.params = params;
         subscriber.send_message(msg);
 

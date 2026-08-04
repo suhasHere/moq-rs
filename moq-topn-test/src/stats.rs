@@ -117,16 +117,15 @@ impl StatsCollector {
         let values = self.current_values.lock().unwrap();
         let mut ranking: Vec<_> = values.iter().map(|(&k, &v)| (k, v)).collect();
         // Sort by value descending, then by publisher_id ascending for ties
-        ranking.sort_by(|a, b| {
-            b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0))
-        });
+        ranking.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
         ranking
     }
 
     /// Get the top-N publisher IDs based on current values
     pub fn get_top_n_publishers(&self) -> Vec<usize> {
         let ranking = self.get_current_ranking();
-        ranking.iter()
+        ranking
+            .iter()
             .take(self.top_n as usize)
             .map(|(id, _)| *id)
             .collect()
@@ -149,15 +148,24 @@ impl StatsCollector {
         info!("");
 
         // Throughput
-        let total_published: u64 = self.groups_published
+        let total_published: u64 = self
+            .groups_published
             .iter()
             .map(|c| c.load(Ordering::Relaxed))
             .sum();
         let total_received = self.groups_received.load(Ordering::Relaxed);
 
         info!("Throughput:");
-        info!("  Groups published: {} ({:.1}/s)", total_published, total_published as f64 / elapsed_secs);
-        info!("  Groups received:  {} ({:.1}/s)", total_received, total_received as f64 / elapsed_secs);
+        info!(
+            "  Groups published: {} ({:.1}/s)",
+            total_published,
+            total_published as f64 / elapsed_secs
+        );
+        info!(
+            "  Groups received:  {} ({:.1}/s)",
+            total_received,
+            total_received as f64 / elapsed_secs
+        );
         info!("");
 
         // Per-publisher stats

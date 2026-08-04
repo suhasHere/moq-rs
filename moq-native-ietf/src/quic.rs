@@ -320,7 +320,11 @@ impl Server {
         } else if alpn_bytes == moq_transport::setup::ALPN {
             // Raw QUIC mode — create a session with no H3 framing.
             let request = url::Url::parse("moqt://localhost").unwrap();
-            web_transport_quinn::Session::raw(conn, request, web_transport_quinn::proto::ConnectResponse::default())
+            web_transport_quinn::Session::raw(
+                conn,
+                request,
+                web_transport_quinn::proto::ConnectResponse::default(),
+            )
         } else {
             anyhow::bail!("unsupported ALPN: {}", alpn)
         };
@@ -436,7 +440,11 @@ impl Client {
                     .with_protocol(std::str::from_utf8(moq_transport::setup::ALPN).unwrap());
                 web_transport_quinn::Session::connect(connection, request).await?
             }
-            "moqt" => web_transport_quinn::Session::raw(connection, url.clone(), web_transport_quinn::proto::ConnectResponse::default()),
+            "moqt" => web_transport_quinn::Session::raw(
+                connection,
+                url.clone(),
+                web_transport_quinn::proto::ConnectResponse::default(),
+            ),
             _ => unreachable!(),
         };
 

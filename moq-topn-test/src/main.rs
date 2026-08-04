@@ -104,9 +104,7 @@ async fn main() -> anyhow::Result<()> {
     } else {
         "moq_topn_test=info,moq_transport=warn"
     };
-    tracing_subscriber::fmt()
-        .with_env_filter(filter)
-        .init();
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     info!("MOQ Top-N Test Driver");
     info!("=====================");

@@ -66,7 +66,11 @@ impl Clone for DatagramsReader {
 }
 
 impl DatagramsReader {
-    fn new(rx: broadcast::Receiver<Datagram>, tx: broadcast::Sender<Datagram>, track: Arc<Track>) -> Self {
+    fn new(
+        rx: broadcast::Receiver<Datagram>,
+        tx: broadcast::Sender<Datagram>,
+        track: Arc<Track>,
+    ) -> Self {
         Self {
             rx,
             tx,

@@ -31,14 +31,34 @@ pub struct RequestContext<'a> {
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum AuthzOperation<'a> {
-    PublishNamespace { namespace: &'a TrackNamespace },
-    PublishNamespaceDone { namespace: &'a TrackNamespace },
-    Publish { namespace: &'a TrackNamespace, track: &'a [u8] },
-    Subscribe { namespace: &'a TrackNamespace, track: &'a [u8] },
-    SubscribeNamespace { prefix: &'a TrackNamespace },
-    Fetch { namespace: &'a TrackNamespace, track: &'a [u8] },
-    TrackStatus { namespace: &'a TrackNamespace, track: &'a [u8] },
-    RequestUpdate { request_id: u64 },
+    PublishNamespace {
+        namespace: &'a TrackNamespace,
+    },
+    PublishNamespaceDone {
+        namespace: &'a TrackNamespace,
+    },
+    Publish {
+        namespace: &'a TrackNamespace,
+        track: &'a [u8],
+    },
+    Subscribe {
+        namespace: &'a TrackNamespace,
+        track: &'a [u8],
+    },
+    SubscribeNamespace {
+        prefix: &'a TrackNamespace,
+    },
+    Fetch {
+        namespace: &'a TrackNamespace,
+        track: &'a [u8],
+    },
+    TrackStatus {
+        namespace: &'a TrackNamespace,
+        track: &'a [u8],
+    },
+    RequestUpdate {
+        request_id: u64,
+    },
 }
 
 /// A fully-resolved AUTHORIZATION TOKEN parameter.

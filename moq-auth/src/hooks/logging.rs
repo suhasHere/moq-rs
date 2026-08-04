@@ -29,11 +29,18 @@ impl<H: AuthHook> AuthHook for LoggingAuthHook<H> {
             Ok(decision) => {
                 log::debug!(
                     "auth on_setup: session={}, tokens={}, allowed={}, principal={:?}",
-                    ctx.session_id, tokens.len(), decision.is_allowed(), decision.principal.as_deref()
+                    ctx.session_id,
+                    tokens.len(),
+                    decision.is_allowed(),
+                    decision.principal.as_deref()
                 );
             }
             Err(e) => {
-                log::error!("auth on_setup error: session={}, error={}", ctx.session_id, e);
+                log::error!(
+                    "auth on_setup error: session={}, error={}",
+                    ctx.session_id,
+                    e
+                );
             }
         }
         result
@@ -49,13 +56,17 @@ impl<H: AuthHook> AuthHook for LoggingAuthHook<H> {
             Ok(decision) => {
                 log::debug!(
                     "auth on_request: session={}, operation={:?}, allowed={}",
-                    ctx.session.session_id, ctx.operation, decision.is_allowed()
+                    ctx.session.session_id,
+                    ctx.operation,
+                    decision.is_allowed()
                 );
             }
             Err(e) => {
                 log::error!(
                     "auth on_request error: session={}, operation={:?}, error={}",
-                    ctx.session.session_id, ctx.operation, e
+                    ctx.session.session_id,
+                    ctx.operation,
+                    e
                 );
             }
         }

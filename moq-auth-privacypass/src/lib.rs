@@ -119,8 +119,8 @@ impl PrivacyPassAuthHook {
     }
 
     async fn verify_blind_rsa(&self, token_bytes: &[u8]) -> Result<AuthDecision, AuthDecision> {
-        let (token, _) =
-            PublicToken::decode(token_bytes).map_err(|_| AuthDecision::deny(DenyReason::TokenMalformed))?;
+        let (token, _) = PublicToken::decode(token_bytes)
+            .map_err(|_| AuthDecision::deny(DenyReason::TokenMalformed))?;
 
         let auth_input = token.authenticator_input();
         let signature = Signature::try_from(token.authenticator.as_slice())
@@ -138,8 +138,8 @@ impl PrivacyPassAuthHook {
     }
 
     async fn verify_pbrs(&self, token_bytes: &[u8]) -> Result<AuthDecision, AuthDecision> {
-        let (token, token_len) =
-            PublicToken::decode(token_bytes).map_err(|_| AuthDecision::deny(DenyReason::TokenMalformed))?;
+        let (token, token_len) = PublicToken::decode(token_bytes)
+            .map_err(|_| AuthDecision::deny(DenyReason::TokenMalformed))?;
 
         // Extensions are appended after the token
         if token_bytes.len() <= token_len {
@@ -166,23 +166,23 @@ impl PrivacyPassAuthHook {
             };
             let rsa_pk = match RsaPublicKey::from_public_key_der(&derived_der) {
                 Ok(k) => k,
-                Err(_) => {
-                    match SubjectPublicKeyInfoRef::try_from(derived_der.as_slice()) {
-                        Ok(spki) => match RsaPublicKey::from_pkcs1_der(spki.subject_public_key.raw_bytes()) {
+                Err(_) => match SubjectPublicKeyInfoRef::try_from(derived_der.as_slice()) {
+                    Ok(spki) => {
+                        match RsaPublicKey::from_pkcs1_der(spki.subject_public_key.raw_bytes()) {
                             Ok(k) => k,
                             Err(_) => continue,
-                        },
-                        Err(_) => continue,
+                        }
                     }
-                }
+                    Err(_) => continue,
+                },
             };
 
             let verifying_key = PssVerifyingKey::<RsaSha384>::new_with_salt_len(rsa_pk, 0);
 
             if verifying_key.verify(&auth_input, &signature).is_ok() {
                 let scope = parse_moq_scope(extensions_bytes);
-                let mut decision = AuthDecision::allow()
-                    .with_principal(Some("privacy-pass-pbrs".to_string()));
+                let mut decision =
+                    AuthDecision::allow().with_principal(Some("privacy-pass-pbrs".to_string()));
                 if let Some(s) = scope {
                     decision = decision.with_scope(Some(s));
                 }
@@ -209,7 +209,8 @@ fn parse_moq_scope(extensions_bytes: &[u8]) -> Option<String> {
     while offset + 4 <= 2 + total_len {
         let ext_type = u16::from_be_bytes([extensions_bytes[offset], extensions_bytes[offset + 1]]);
         let data_len =
-            u16::from_be_bytes([extensions_bytes[offset + 2], extensions_bytes[offset + 3]]) as usize;
+            u16::from_be_bytes([extensions_bytes[offset + 2], extensions_bytes[offset + 3]])
+                as usize;
         offset += 4;
 
         if offset + data_len > extensions_bytes.len() {
@@ -218,7 +219,8 @@ fn parse_moq_scope(extensions_bytes: &[u8]) -> Option<String> {
 
         if ext_type == 0x0001 {
             // MoQ actions extension — JSON-encoded scope
-            if let Ok(scope_str) = std::str::from_utf8(&extensions_bytes[offset..offset + data_len]) {
+            if let Ok(scope_str) = std::str::from_utf8(&extensions_bytes[offset..offset + data_len])
+            {
                 return Some(scope_str.to_string());
             }
         }

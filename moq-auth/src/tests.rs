@@ -48,7 +48,6 @@ async fn allow_all_hook_allows_request() {
     assert!(decision.is_allowed());
 }
 
-
 #[tokio::test]
 async fn key_value_hook_accepts_matching_secret() {
     let hook = KeyValueAuthHook::new(b"my-secret".as_slice());
@@ -65,7 +64,10 @@ async fn key_value_hook_rejects_wrong_secret() {
     let tokens = test_tokens(b"wrong-secret");
     let decision = hook.on_setup(&ctx, &tokens).await.unwrap();
     assert!(!decision.is_allowed());
-    assert!(matches!(decision.verdict, Verdict::Deny(DenyReason::TokenInvalid)));
+    assert!(matches!(
+        decision.verdict,
+        Verdict::Deny(DenyReason::TokenInvalid)
+    ));
 }
 
 #[tokio::test]
@@ -87,7 +89,6 @@ async fn key_value_hook_rejects_wrong_token_type() {
     let decision = hook.on_setup(&ctx, &tokens).await.unwrap();
     assert!(!decision.is_allowed());
 }
-
 
 #[tokio::test]
 async fn auth_decision_builder() {

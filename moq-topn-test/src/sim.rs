@@ -168,7 +168,10 @@ async fn run_publisher(
     mut shutdown_rx: broadcast::Receiver<()>,
 ) {
     let track_name = format!("speaker-{}", publisher_id);
-    debug!("Publisher {} starting (track: {})", publisher_id, track_name);
+    debug!(
+        "Publisher {} starting (track: {})",
+        publisher_id, track_name
+    );
 
     let mut speech_sim = SpeechSimulator::new();
     let mut group_seq: u64 = 0;

@@ -101,8 +101,13 @@ impl TimelineRecorder {
         let subscribers_height = self.num_subscribers as f64 * subscriber_lane_height;
 
         let total_width = margin_left + timeline_width + margin_right;
-        let total_height =
-            margin_top + publishers_height + section_gap + subscribers_height + section_gap + legend_height + margin_bottom;
+        let total_height = margin_top
+            + publishers_height
+            + section_gap
+            + subscribers_height
+            + section_gap
+            + legend_height
+            + margin_bottom;
 
         let mut svg = String::new();
         svg.push_str(&format!(
@@ -112,7 +117,8 @@ impl TimelineRecorder {
         svg.push('\n');
 
         // Styles
-        svg.push_str(r#"<defs>
+        svg.push_str(
+            r#"<defs>
   <style>
     .title { font: bold 18px sans-serif; fill: #333; }
     .section-label { font: bold 14px sans-serif; fill: #555; }
@@ -128,7 +134,8 @@ impl TimelineRecorder {
     .axis-line { stroke: #ccc; stroke-width: 1; }
   </style>
 </defs>
-"#);
+"#,
+        );
 
         // Title
         svg.push_str(&format!(
@@ -230,7 +237,8 @@ impl TimelineRecorder {
         svg.push('\n');
 
         // Build top-N selection timeline per subscriber
-        let mut subscriber_selections: HashMap<usize, Vec<(u64, Vec<usize>, Option<usize>)>> = HashMap::new();
+        let mut subscriber_selections: HashMap<usize, Vec<(u64, Vec<usize>, Option<usize>)>> =
+            HashMap::new();
         for i in 0..self.num_subscribers {
             subscriber_selections.insert(i, vec![(0, vec![], None)]);
         }
@@ -248,7 +256,10 @@ impl TimelineRecorder {
             }
         }
         for (_, v) in subscriber_selections.iter_mut() {
-            let last_selection = v.last().map(|(_, s, e)| (s.clone(), *e)).unwrap_or((vec![], None));
+            let last_selection = v
+                .last()
+                .map(|(_, s, e)| (s.clone(), *e))
+                .unwrap_or((vec![], None));
             v.push((max_time_ms, last_selection.0, last_selection.1));
         }
 
@@ -330,7 +341,10 @@ impl TimelineRecorder {
         let axis_y = subscribers_y + subscribers_height + 20.0;
         svg.push_str(&format!(
             r#"<line x1="{}" y1="{}" x2="{}" y2="{}" class="axis-line" />"#,
-            margin_left, axis_y, margin_left + timeline_width, axis_y
+            margin_left,
+            axis_y,
+            margin_left + timeline_width,
+            axis_y
         ));
         svg.push('\n');
 
@@ -341,7 +355,10 @@ impl TimelineRecorder {
             let x = margin_left + (t as f64 / max_time_ms as f64) * timeline_width;
             svg.push_str(&format!(
                 r#"<line x1="{}" y1="{}" x2="{}" y2="{}" class="axis-line" />"#,
-                x, axis_y, x, axis_y + 5.0
+                x,
+                axis_y,
+                x,
+                axis_y + 5.0
             ));
             svg.push_str(&format!(
                 r#"<text x="{}" y="{}" class="time-label" text-anchor="middle">{}s</text>"#,

@@ -43,35 +43,68 @@ fn get_ts_ms() -> u64 {
 }
 
 fn log_topn_event_track_registered(enabled: bool, track: &str, value: u8, publisher_id: usize) {
-    if !enabled { return; }
+    if !enabled {
+        return;
+    }
     println!(
         r#"TOPN_EVENT:{{"ts_ms":{},"event":"track_registered","track":"{}","value":{},"publisher_id":{}}}"#,
-        get_ts_ms(), track, value, publisher_id
+        get_ts_ms(),
+        track,
+        value,
+        publisher_id
     );
 }
 
-fn log_topn_event_value_updated(enabled: bool, track: &str, old_value: u8, new_value: u8, publisher_id: usize) {
-    if !enabled { return; }
+fn log_topn_event_value_updated(
+    enabled: bool,
+    track: &str,
+    old_value: u8,
+    new_value: u8,
+    publisher_id: usize,
+) {
+    if !enabled {
+        return;
+    }
     println!(
         r#"TOPN_EVENT:{{"ts_ms":{},"event":"value_updated","track":"{}","old_value":{},"new_value":{},"publisher_id":{}}}"#,
-        get_ts_ms(), track, old_value, new_value, publisher_id
+        get_ts_ms(),
+        track,
+        old_value,
+        new_value,
+        publisher_id
     );
 }
 
-fn log_topn_event_subscriber_registered(enabled: bool, subscriber_id: usize, is_pub_sub: bool, publisher_id: Option<usize>) {
-    if !enabled { return; }
-    let pub_id_str = publisher_id.map(|id| id.to_string()).unwrap_or_else(|| "null".to_string());
+fn log_topn_event_subscriber_registered(
+    enabled: bool,
+    subscriber_id: usize,
+    is_pub_sub: bool,
+    publisher_id: Option<usize>,
+) {
+    if !enabled {
+        return;
+    }
+    let pub_id_str = publisher_id
+        .map(|id| id.to_string())
+        .unwrap_or_else(|| "null".to_string());
     println!(
         r#"TOPN_EVENT:{{"ts_ms":{},"event":"subscriber_registered","subscriber_id":{},"is_pub_sub":{},"publisher_id":{}}}"#,
-        get_ts_ms(), subscriber_id, is_pub_sub, pub_id_str
+        get_ts_ms(),
+        subscriber_id,
+        is_pub_sub,
+        pub_id_str
     );
 }
 
 fn log_topn_event_publish_received(enabled: bool, subscriber_id: usize, track: &str) {
-    if !enabled { return; }
+    if !enabled {
+        return;
+    }
     println!(
         r#"TOPN_EVENT:{{"ts_ms":{},"event":"publish_received","subscriber_id":{},"track":"{}"}}"#,
-        get_ts_ms(), subscriber_id, track
+        get_ts_ms(),
+        subscriber_id,
+        track
     );
 }
 
@@ -109,9 +142,10 @@ pub async fn run(args: Args) -> anyhow::Result<()> {
         forward_errors: AtomicU64::new(0),
     });
 
-    let current_values = Arc::new(tokio::sync::RwLock::new(
-        std::collections::HashMap::<usize, u8>::new(),
-    ));
+    let current_values = Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::<
+        usize,
+        u8,
+    >::new()));
 
     let batch_size = args.connection_batch_size;
     let mut handles = Vec::new();
@@ -246,10 +280,7 @@ pub async fn run(args: Args) -> anyhow::Result<()> {
 
     println!("SUMMARY");
     println!("  Test Duration:           {:.1}s", elapsed);
-    println!(
-        "  Total Messages Handled:  {}",
-        published + received
-    );
+    println!("  Total Messages Handled:  {}", published + received);
     println!();
 
     // Also print detailed stats
@@ -270,7 +301,11 @@ pub async fn run(args: Args) -> anyhow::Result<()> {
 async fn connect(args: &Args, relay_url: &Url) -> Result<web_transport::Session> {
     let tls = args.tls.load()?;
     // Use 0.0.0.0:0 for IPv4 relay addresses, [::]:0 for IPv6
-    let bind_addr = if relay_url.host_str().map(|h| h.contains(':')).unwrap_or(false) {
+    let bind_addr = if relay_url
+        .host_str()
+        .map(|h| h.contains(':'))
+        .unwrap_or(false)
+    {
         "[::]:0"
     } else {
         "0.0.0.0:0"
@@ -315,7 +350,10 @@ async fn run_publisher(
     let namespace = TrackNamespace::from_utf8_path(&namespace_path);
 
     // First, publish namespace (this works and confirms session is running)
-    info!("Publisher {} publishing namespace: {}", publisher_id, namespace_path);
+    info!(
+        "Publisher {} publishing namespace: {}",
+        publisher_id, namespace_path
+    );
     let publish_ns = publisher.publish_namespace(namespace.clone()).await?;
 
     // Wait for namespace OK with timeout
@@ -362,7 +400,10 @@ async fn run_publisher(
         .await
         .context("failed to send PUBLISH")?;
 
-    info!("Publisher {} PUBLISH queued, waiting for OK...", publisher_id);
+    info!(
+        "Publisher {} PUBLISH queued, waiting for OK...",
+        publisher_id
+    );
 
     // Wait for PUBLISH_OK
     tokio::select! {
@@ -507,10 +548,19 @@ async fn run_subscriber(
     // Determine if this subscriber is also a publisher (pub-sub)
     // In our test setup, subscriber IDs 0..(publishers-1) are pub-subs
     let is_pub_sub = subscriber_id < args.publishers;
-    let publisher_id = if is_pub_sub { Some(subscriber_id) } else { None };
+    let publisher_id = if is_pub_sub {
+        Some(subscriber_id)
+    } else {
+        None
+    };
 
     // Log subscriber registration for visualization
-    log_topn_event_subscriber_registered(!args.no_topn_log, subscriber_id, is_pub_sub, publisher_id);
+    log_topn_event_subscriber_registered(
+        !args.no_topn_log,
+        subscriber_id,
+        is_pub_sub,
+        publisher_id,
+    );
 
     info!(
         "Subscriber {} ready (namespace prefix: {}, top-{}, is_pub_sub: {})",

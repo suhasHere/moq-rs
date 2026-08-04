@@ -13,15 +13,15 @@ mod mapping;
 #[cfg(test)]
 mod tests;
 
-pub use config::C4MConfig;
 pub use cat_token::Es256Algorithm;
+pub use config::C4MConfig;
 
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use cat_token::{
-    CatTokenValidator, CryptographicAlgorithm, MoqtAction, MoqtAuthRequest, MoqtValidator,
-    decode_token_bytes,
+    decode_token_bytes, CatTokenValidator, CryptographicAlgorithm, MoqtAction, MoqtAuthRequest,
+    MoqtValidator,
 };
 use moq_auth::{AuthBlob, AuthDecision, AuthHook, DenyReason, RequestContext, SessionContext};
 
@@ -60,33 +60,54 @@ impl C4MAuthHook {
         namespace: Vec<Vec<u8>>,
         track: Vec<u8>,
     ) -> Result<AuthDecision, DenyReason> {
-        let token = decode_token_bytes(&blob.token_value, self.algorithm.as_ref()).map_err(
-            |e| {
+        let token =
+            decode_token_bytes(&blob.token_value, self.algorithm.as_ref()).map_err(|e| {
                 log::debug!("C4M token decode/signature failed: {}", e);
                 map_cat_error(e)
-            },
-        )?;
+            })?;
 
         self.token_validator.validate(&token).map_err(|e| {
-            log::debug!("C4M claims validation failed: {} (sub={:?})", e, token.informational.sub);
+            log::debug!(
+                "C4M claims validation failed: {} (sub={:?})",
+                e,
+                token.informational.sub
+            );
             map_cat_error(e)
         })?;
 
-        self.moqt_validator.validate_moqt_claims(&token).map_err(|e| {
-            log::debug!("C4M MOQT claims invalid: {} (sub={:?})", e, token.informational.sub);
-            map_cat_error(e)
-        })?;
+        self.moqt_validator
+            .validate_moqt_claims(&token)
+            .map_err(|e| {
+                log::debug!(
+                    "C4M MOQT claims invalid: {} (sub={:?})",
+                    e,
+                    token.informational.sub
+                );
+                map_cat_error(e)
+            })?;
 
         let request = MoqtAuthRequest::new(action.clone(), namespace.clone(), track.clone());
         let result = self.moqt_validator.authorize(&token, &request);
 
         if result.authorized {
             let principal = token.informational.sub.clone();
-            log::debug!("C4M auth: allowed (sub={:?}, action={:?})", principal, action);
+            log::debug!(
+                "C4M auth: allowed (sub={:?}, action={:?})",
+                principal,
+                action
+            );
             Ok(AuthDecision::allow().with_principal(principal))
         } else {
-            let ns: Vec<_> = namespace.iter().map(|n| String::from_utf8_lossy(n).to_string()).collect();
-            log::debug!("C4M auth: denied scope mismatch (sub={:?}, action={:?}, namespace={:?})", token.informational.sub, action, ns);
+            let ns: Vec<_> = namespace
+                .iter()
+                .map(|n| String::from_utf8_lossy(n).to_string())
+                .collect();
+            log::debug!(
+                "C4M auth: denied scope mismatch (sub={:?}, action={:?}, namespace={:?})",
+                token.informational.sub,
+                action,
+                ns
+            );
             Err(DenyReason::ScopeMismatch)
         }
     }

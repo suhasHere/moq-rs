@@ -249,7 +249,11 @@ fn process_events(events: Vec<TopNEvent>) -> VisualizationData {
 
     // Normalize timestamps to start from 0
     let base_ts = min_ts;
-    let duration = if max_ts > min_ts { max_ts - min_ts } else { 1000 };
+    let duration = if max_ts > min_ts {
+        max_ts - min_ts
+    } else {
+        1000
+    };
 
     // Build publisher timelines
     let mut publishers: Vec<Publisher> = Vec::new();

@@ -113,15 +113,29 @@ impl StreamHeaderType {
             StreamHeaderType::SubgroupZeroIdExt => StreamHeaderType::SubgroupZeroId,
             StreamHeaderType::SubgroupFirstObjectIdExt => StreamHeaderType::SubgroupFirstObjectId,
             StreamHeaderType::SubgroupIdExt => StreamHeaderType::SubgroupId,
-            StreamHeaderType::SubgroupZeroIdExtEndOfGroup => StreamHeaderType::SubgroupZeroIdEndOfGroup,
-            StreamHeaderType::SubgroupFirstObjectIdExtEndOfGroup => StreamHeaderType::SubgroupFirstObjectIdEndOfGroup,
+            StreamHeaderType::SubgroupZeroIdExtEndOfGroup => {
+                StreamHeaderType::SubgroupZeroIdEndOfGroup
+            }
+            StreamHeaderType::SubgroupFirstObjectIdExtEndOfGroup => {
+                StreamHeaderType::SubgroupFirstObjectIdEndOfGroup
+            }
             StreamHeaderType::SubgroupIdExtEndOfGroup => StreamHeaderType::SubgroupIdEndOfGroup,
-            StreamHeaderType::SubgroupZeroIdExtNoPriority => StreamHeaderType::SubgroupZeroIdNoPriority,
-            StreamHeaderType::SubgroupFirstObjectIdExtNoPriority => StreamHeaderType::SubgroupFirstObjectIdNoPriority,
+            StreamHeaderType::SubgroupZeroIdExtNoPriority => {
+                StreamHeaderType::SubgroupZeroIdNoPriority
+            }
+            StreamHeaderType::SubgroupFirstObjectIdExtNoPriority => {
+                StreamHeaderType::SubgroupFirstObjectIdNoPriority
+            }
             StreamHeaderType::SubgroupIdExtNoPriority => StreamHeaderType::SubgroupIdNoPriority,
-            StreamHeaderType::SubgroupZeroIdExtEndOfGroupNoPriority => StreamHeaderType::SubgroupZeroIdEndOfGroupNoPriority,
-            StreamHeaderType::SubgroupFirstObjectIdExtEndOfGroupNoPriority => StreamHeaderType::SubgroupFirstObjectIdEndOfGroupNoPriority,
-            StreamHeaderType::SubgroupIdExtEndOfGroupNoPriority => StreamHeaderType::SubgroupIdEndOfGroupNoPriority,
+            StreamHeaderType::SubgroupZeroIdExtEndOfGroupNoPriority => {
+                StreamHeaderType::SubgroupZeroIdEndOfGroupNoPriority
+            }
+            StreamHeaderType::SubgroupFirstObjectIdExtEndOfGroupNoPriority => {
+                StreamHeaderType::SubgroupFirstObjectIdEndOfGroupNoPriority
+            }
+            StreamHeaderType::SubgroupIdExtEndOfGroupNoPriority => {
+                StreamHeaderType::SubgroupIdEndOfGroupNoPriority
+            }
             // Already non-Ext or Fetch
             other => other,
         }

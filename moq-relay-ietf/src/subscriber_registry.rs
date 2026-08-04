@@ -173,17 +173,14 @@ impl SubscriberRegistry {
             let tie_break_policy = inner.tie_break_policy;
 
             // Get or create tracker for this (prefix, property_type)
-            let tracker = inner
-                .top_n_trackers
-                .entry(tracker_key)
-                .or_insert_with(|| {
-                    let config = TopNTrackerConfig {
-                        enable_event_logging: enable_logging,
-                        tie_break_policy,
-                        ..Default::default()
-                    };
-                    TopNTracker::with_config(filter.property_type, config)
-                });
+            let tracker = inner.top_n_trackers.entry(tracker_key).or_insert_with(|| {
+                let config = TopNTrackerConfig {
+                    enable_event_logging: enable_logging,
+                    tie_break_policy,
+                    ..Default::default()
+                };
+                TopNTracker::with_config(filter.property_type, config)
+            });
 
             // Update max_n if this subscription has higher N
             let current_max_n = tracker.max_n();
@@ -290,7 +287,9 @@ impl SubscriberRegistry {
         let matching_prefix: Option<TrackNamespace> = inner
             .top_n_trackers
             .iter()
-            .find(|((prefix, pt), _)| *pt == property_type && Self::prefix_matches(prefix, namespace))
+            .find(|((prefix, pt), _)| {
+                *pt == property_type && Self::prefix_matches(prefix, namespace)
+            })
             .map(|((prefix, _), _)| prefix.clone());
 
         let Some(prefix) = matching_prefix else {
@@ -409,9 +408,9 @@ impl SubscriberRegistry {
         }
 
         // Clear published_tracks entries so re-publish triggers notification
-        inner.published_tracks.retain(|(_sub_id, ns, tn)| {
-            !(ns == namespace && tn == track_name)
-        });
+        inner
+            .published_tracks
+            .retain(|(_sub_id, ns, tn)| !(ns == namespace && tn == track_name));
         // Also clear per-subscription index
         for entries in inner.subscription_published.values_mut() {
             entries.retain(|(ns, tn)| !(ns == namespace && tn == track_name));
@@ -529,7 +528,10 @@ impl SubscriberRegistry {
         let mut keys_to_add: Vec<(u64, TrackNamespace, String)> = Vec::new();
 
         // Pre-load snapshots for trackers that match this namespace
-        let mut tracker_snapshots: HashMap<(TrackNamespace, u64), Arc<Vec<crate::top_n_tracker::TrackRank>>> = HashMap::new();
+        let mut tracker_snapshots: HashMap<
+            (TrackNamespace, u64),
+            Arc<Vec<crate::top_n_tracker::TrackRank>>,
+        > = HashMap::new();
         for ((prefix, pt), tracker) in inner.top_n_trackers.iter() {
             if Self::prefix_matches(prefix, namespace) {
                 tracker_snapshots.insert((prefix.clone(), *pt), tracker.load_snapshot());
@@ -599,7 +601,11 @@ impl SubscriberRegistry {
     /// Find all subscriptions that match a given namespace and notify them of a PUBLISH_NAMESPACE
     /// Excludes the session that originated the PUBLISH_NAMESPACE (self-exclusion)
     /// Returns the number of matching subscriptions notified
-    pub fn notify_publish_namespace(&self, namespace: &TrackNamespace, origin_session_id: u64) -> usize {
+    pub fn notify_publish_namespace(
+        &self,
+        namespace: &TrackNamespace,
+        origin_session_id: u64,
+    ) -> usize {
         let inner = self.inner.lock().unwrap();
 
         let notification = PublishNamespaceNotification {
@@ -705,13 +711,25 @@ mod tests {
 
     #[test]
     fn test_prefix_matching() {
-        assert!(SubscriberRegistry::prefix_matches(&ns("live"), &ns("live/stream1")));
+        assert!(SubscriberRegistry::prefix_matches(
+            &ns("live"),
+            &ns("live/stream1")
+        ));
         assert!(SubscriberRegistry::prefix_matches(&ns("live"), &ns("live")));
         // An empty prefix (zero fields) should match everything
         let empty = TrackNamespace::new();
-        assert!(SubscriberRegistry::prefix_matches(&empty, &ns("live/stream1")));
-        assert!(!SubscriberRegistry::prefix_matches(&ns("live/stream1"), &ns("live")));
-        assert!(!SubscriberRegistry::prefix_matches(&ns("other"), &ns("live/stream1")));
+        assert!(SubscriberRegistry::prefix_matches(
+            &empty,
+            &ns("live/stream1")
+        ));
+        assert!(!SubscriberRegistry::prefix_matches(
+            &ns("live/stream1"),
+            &ns("live")
+        ));
+        assert!(!SubscriberRegistry::prefix_matches(
+            &ns("other"),
+            &ns("live/stream1")
+        ));
     }
 
     #[test]
@@ -721,15 +739,30 @@ mod tests {
         let (id1, _rx1, _rx1_ns) = registry.register(ns("live"), 100);
         let (id2, _rx2, _rx2_ns) = registry.register(ns("live/room1"), 101);
 
-        assert_eq!(registry.matching_subscriptions(&ns("live/room1/track")).len(), 2);
+        assert_eq!(
+            registry
+                .matching_subscriptions(&ns("live/room1/track"))
+                .len(),
+            2
+        );
 
         registry.unregister(id1);
 
-        assert_eq!(registry.matching_subscriptions(&ns("live/room1/track")).len(), 1);
+        assert_eq!(
+            registry
+                .matching_subscriptions(&ns("live/room1/track"))
+                .len(),
+            1
+        );
 
         registry.unregister(id2);
 
-        assert_eq!(registry.matching_subscriptions(&ns("live/room1/track")).len(), 0);
+        assert_eq!(
+            registry
+                .matching_subscriptions(&ns("live/room1/track"))
+                .len(),
+            0
+        );
     }
 
     #[tokio::test]
@@ -778,8 +811,7 @@ mod tests {
             property_type: PROPERTY_VIEWERS,
             max_selected: 2,
         };
-        let (_id, mut rx, _rx_ns) =
-            registry.register_with_filter(ns("live"), 100, Some(filter));
+        let (_id, mut rx, _rx_ns) = registry.register_with_filter(ns("live"), 100, Some(filter));
 
         // Register 4 tracks with different viewer counts
         // Publisher session IDs are different from subscriber (100)
@@ -823,8 +855,7 @@ mod tests {
             property_type: PROPERTY_VIEWERS,
             max_selected: 2,
         };
-        let (_id, mut rx, _rx_ns) =
-            registry.register_with_filter(ns("live"), 1, Some(filter));
+        let (_id, mut rx, _rx_ns) = registry.register_with_filter(ns("live"), 1, Some(filter));
 
         // Session 1 publishes the top track
         registry.register_track(&ns("live"), "a", PROPERTY_VIEWERS, 1000, 1); // self
@@ -866,8 +897,7 @@ mod tests {
             property_type: PROPERTY_VIEWERS,
             max_selected: 1,
         };
-        let (_id, mut rx, _rx_ns) =
-            registry.register_with_filter(ns("live"), 100, Some(filter));
+        let (_id, mut rx, _rx_ns) = registry.register_with_filter(ns("live"), 100, Some(filter));
 
         // Initial: a=100, b=50
         registry.register_track(&ns("live"), "a", PROPERTY_VIEWERS, 100, 1);
@@ -908,8 +938,7 @@ mod tests {
             property_type: PROPERTY_VIEWERS,
             max_selected: 1,
         };
-        let (_id2, _rx2, _) =
-            registry.register_with_filter(ns("live"), 101, Some(filter));
+        let (_id2, _rx2, _) = registry.register_with_filter(ns("live"), 101, Some(filter));
 
         // Register tracks
         registry.register_track(&ns("live"), "a", PROPERTY_VIEWERS, 100, 1);

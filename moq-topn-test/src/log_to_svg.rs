@@ -122,7 +122,8 @@ impl TimelineBuilder {
                 if let (Some(track), Some(new_value)) = (event.track.clone(), event.new_value) {
                     if let Some(&publisher_id) = self.track_to_publisher.get(&track) {
                         let pub_idx = self.get_or_create_publisher_idx(publisher_id);
-                        self.publisher_events.push((event.ts_ms, pub_idx, new_value));
+                        self.publisher_events
+                            .push((event.ts_ms, pub_idx, new_value));
                     }
                 }
             }
@@ -157,8 +158,12 @@ impl TimelineBuilder {
                         .excluded_self
                         .map(|pid| self.get_or_create_publisher_idx(pid));
 
-                    self.subscriber_events
-                        .push((event.ts_ms, sub_idx, selected_pub_indices, excluded_idx));
+                    self.subscriber_events.push((
+                        event.ts_ms,
+                        sub_idx,
+                        selected_pub_indices,
+                        excluded_idx,
+                    ));
                 }
             }
             _ => {}
@@ -167,12 +172,18 @@ impl TimelineBuilder {
 
     fn get_or_create_publisher_idx(&mut self, publisher_id: u64) -> usize {
         let next_idx = self.publisher_indices.len();
-        *self.publisher_indices.entry(publisher_id).or_insert(next_idx)
+        *self
+            .publisher_indices
+            .entry(publisher_id)
+            .or_insert(next_idx)
     }
 
     fn get_or_create_subscriber_idx(&mut self, subscriber_id: u64) -> usize {
         let next_idx = self.subscriber_indices.len();
-        *self.subscriber_indices.entry(subscriber_id).or_insert(next_idx)
+        *self
+            .subscriber_indices
+            .entry(subscriber_id)
+            .or_insert(next_idx)
     }
 
     fn generate_svg(&self, output_path: &str) -> std::io::Result<()> {

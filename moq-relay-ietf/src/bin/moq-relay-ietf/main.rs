@@ -174,7 +174,10 @@ async fn main() -> anyhow::Result<()> {
     let tie_break_policy = match cli.tie_break.as_str() {
         "oldest" => TieBreakPolicy::OldestWins,
         "recent" => TieBreakPolicy::MostRecentWins,
-        other => anyhow::bail!("invalid tie-break policy '{}': must be 'oldest' or 'recent'", other),
+        other => anyhow::bail!(
+            "invalid tie-break policy '{}': must be 'oldest' or 'recent'",
+            other
+        ),
     };
 
     // Build the auth hook
@@ -222,8 +225,9 @@ async fn build_auth_hook(cli: &Cli) -> anyhow::Result<Arc<dyn AuthHook>> {
         use p256::ecdsa::VerifyingKey;
         use p256::pkcs8::DecodePublicKey;
 
-        let pem_data = std::fs::read_to_string(key_path)
-            .map_err(|e| anyhow::anyhow!("reading C4M public key from {}: {}", key_path.display(), e))?;
+        let pem_data = std::fs::read_to_string(key_path).map_err(|e| {
+            anyhow::anyhow!("reading C4M public key from {}: {}", key_path.display(), e)
+        })?;
 
         let verifying_key = VerifyingKey::from_public_key_pem(&pem_data)
             .map_err(|e| anyhow::anyhow!("invalid ES256 public key: {e}"))?;
@@ -245,9 +249,13 @@ async fn build_auth_hook(cli: &Cli) -> anyhow::Result<Arc<dyn AuthHook>> {
 
     #[cfg(feature = "auth-privacypass")]
     if let Some(issuer_url) = &cli.auth_pp_issuer {
-        let (blind_rsa_keys, pbrs_keys) = moq_auth_privacypass::fetch_issuer_keys(issuer_url).await
+        let (blind_rsa_keys, pbrs_keys) = moq_auth_privacypass::fetch_issuer_keys(issuer_url)
+            .await
             .map_err(|e| anyhow::anyhow!("Failed to fetch PP issuer keys: {e}"))?;
-        log::info!("Privacy Pass auth enabled with {} issuer key(s)", blind_rsa_keys.len() + pbrs_keys.len());
+        log::info!(
+            "Privacy Pass auth enabled with {} issuer key(s)",
+            blind_rsa_keys.len() + pbrs_keys.len()
+        );
         let hook = PrivacyPassAuthHook::new(blind_rsa_keys, pbrs_keys).with_setup_required(false);
         hooks.push(Arc::new(hook));
     }
@@ -278,7 +286,9 @@ impl AuthHook for MultiAuthHook {
                 return Ok(decision);
             }
         }
-        Ok(moq_auth::AuthDecision::deny(moq_auth::DenyReason::TokenMissing))
+        Ok(moq_auth::AuthDecision::deny(
+            moq_auth::DenyReason::TokenMissing,
+        ))
     }
 
     async fn on_request(
@@ -292,6 +302,8 @@ impl AuthHook for MultiAuthHook {
                 return Ok(decision);
             }
         }
-        Ok(moq_auth::AuthDecision::deny(moq_auth::DenyReason::TokenMissing))
+        Ok(moq_auth::AuthDecision::deny(
+            moq_auth::DenyReason::TokenMissing,
+        ))
     }
 }

@@ -76,7 +76,13 @@ impl TopNEventLogger {
         );
     }
 
-    pub fn log_value_updated(&self, track_name: &str, old_value: u64, new_value: u64, publisher_id: u64) {
+    pub fn log_value_updated(
+        &self,
+        track_name: &str,
+        old_value: u64,
+        new_value: u64,
+        publisher_id: u64,
+    ) {
         if !self.is_enabled() {
             return;
         }
@@ -90,7 +96,13 @@ impl TopNEventLogger {
         );
     }
 
-    pub fn log_top_n_query(&self, subscriber_id: u64, n: u8, selected: &[(String, u64)], excluded_self: Option<u64>) {
+    pub fn log_top_n_query(
+        &self,
+        subscriber_id: u64,
+        n: u8,
+        selected: &[(String, u64)],
+        excluded_self: Option<u64>,
+    ) {
         if !self.is_enabled() {
             return;
         }
@@ -104,7 +116,9 @@ impl TopNEventLogger {
             subscriber_id,
             n,
             selected_json.join(","),
-            excluded_self.map(|id| id.to_string()).unwrap_or_else(|| "null".to_string())
+            excluded_self
+                .map(|id| id.to_string())
+                .unwrap_or_else(|| "null".to_string())
         );
     }
 
@@ -339,7 +353,11 @@ impl TopNTracker {
         self.do_rebuild_snapshot();
 
         let full_track_path = format!("{}/{}", key.namespace, key.track_name);
-        self.event_logger.log_track_registered(&full_track_path, property_value, publisher_session_id);
+        self.event_logger.log_track_registered(
+            &full_track_path,
+            property_value,
+            publisher_session_id,
+        );
 
         log::debug!(
             "registered track {:?} with value {} from session {}",
@@ -376,7 +394,8 @@ impl TopNTracker {
         self.dirty.store(true, Ordering::Release);
 
         if let Some((old_value, publisher_id)) = old_value_and_publisher {
-            self.event_logger.log_value_updated(track_name, old_value, new_value, publisher_id);
+            self.event_logger
+                .log_value_updated(track_name, old_value, new_value, publisher_id);
         }
 
         log::debug!("updated track {:?} to value {}", key, new_value);
@@ -479,8 +498,13 @@ impl TopNTracker {
         }
 
         // Log the query result
-        let excluded_self = if has_self_tracks { Some(session_id) } else { None };
-        self.event_logger.log_top_n_query(session_id, n, &selected_with_values, excluded_self);
+        let excluded_self = if has_self_tracks {
+            Some(session_id)
+        } else {
+            None
+        };
+        self.event_logger
+            .log_top_n_query(session_id, n, &selected_with_values, excluded_self);
 
         result
     }
@@ -603,9 +627,15 @@ impl TopNTracker {
 
     /// Find a track's position in the snapshot (for fast rejection)
     /// Returns None if track is not in the snapshot
-    pub fn find_track_position(&self, namespace: &TrackNamespace, track_name: &str) -> Option<usize> {
+    pub fn find_track_position(
+        &self,
+        namespace: &TrackNamespace,
+        track_name: &str,
+    ) -> Option<usize> {
         let snapshot = self.load_snapshot();
-        snapshot.iter().position(|t| &t.namespace == namespace && t.track_name == track_name)
+        snapshot
+            .iter()
+            .position(|t| &t.namespace == namespace && t.track_name == track_name)
     }
 
     /// Force a snapshot rebuild if dirty. Called by external code that needs fresh data.
@@ -675,8 +705,7 @@ impl TopNTracker {
 
     fn update_max_x(&self, counts: &HashMap<u64, usize>) {
         let max = counts.values().copied().max().unwrap_or(0);
-        self.max_x
-            .store(max.min(255) as u8, Ordering::Relaxed);
+        self.max_x.store(max.min(255) as u8, Ordering::Relaxed);
     }
 
     fn do_rebuild_snapshot(&self) {
@@ -697,11 +726,9 @@ impl TopNTracker {
         let index = self.track_index.lock().unwrap();
         let mut tracks: Vec<TrackRank> = index
             .iter()
-            .filter(|(_, info)| {
-                match staleness_threshold {
-                    Some(timeout) => now.duration_since(info.last_update) < timeout,
-                    None => true,
-                }
+            .filter(|(_, info)| match staleness_threshold {
+                Some(timeout) => now.duration_since(info.last_update) < timeout,
+                None => true,
             })
             .map(|(key, info)| TrackRank {
                 namespace: key.namespace.clone(),
@@ -914,11 +941,11 @@ mod tests {
 
         // Session 1 has tracks at positions 0, 2, 4
         tracker.register_track(ns("live"), "a".to_string(), 100, 1); // pos 0
-        tracker.register_track(ns("live"), "b".to_string(), 90, 2);  // pos 1
-        tracker.register_track(ns("live"), "c".to_string(), 80, 1);  // pos 2
-        tracker.register_track(ns("live"), "d".to_string(), 70, 3);  // pos 3
-        tracker.register_track(ns("live"), "e".to_string(), 60, 1);  // pos 4
-        tracker.register_track(ns("live"), "f".to_string(), 50, 4);  // pos 5
+        tracker.register_track(ns("live"), "b".to_string(), 90, 2); // pos 1
+        tracker.register_track(ns("live"), "c".to_string(), 80, 1); // pos 2
+        tracker.register_track(ns("live"), "d".to_string(), 70, 3); // pos 3
+        tracker.register_track(ns("live"), "e".to_string(), 60, 1); // pos 4
+        tracker.register_track(ns("live"), "f".to_string(), 50, 4); // pos 5
 
         // Session 1's last self-track is at position 4
         assert_eq!(tracker.compute_last_self_position(1), 4);
@@ -937,15 +964,15 @@ mod tests {
 
         // Create a snapshot with session 1's tracks at positions 0, 2, 4
         tracker.register_track(ns("live"), "a".to_string(), 100, 1); // pos 0, session 1
-        tracker.register_track(ns("live"), "b".to_string(), 90, 2);  // pos 1
-        tracker.register_track(ns("live"), "c".to_string(), 80, 1);  // pos 2, session 1
-        tracker.register_track(ns("live"), "d".to_string(), 70, 3);  // pos 3
-        tracker.register_track(ns("live"), "e".to_string(), 60, 1);  // pos 4, session 1
-        tracker.register_track(ns("live"), "f".to_string(), 50, 4);  // pos 5
-        tracker.register_track(ns("live"), "g".to_string(), 40, 5);  // pos 6
-        tracker.register_track(ns("live"), "h".to_string(), 30, 6);  // pos 7
-        tracker.register_track(ns("live"), "i".to_string(), 20, 7);  // pos 8
-        tracker.register_track(ns("live"), "j".to_string(), 10, 8);  // pos 9
+        tracker.register_track(ns("live"), "b".to_string(), 90, 2); // pos 1
+        tracker.register_track(ns("live"), "c".to_string(), 80, 1); // pos 2, session 1
+        tracker.register_track(ns("live"), "d".to_string(), 70, 3); // pos 3
+        tracker.register_track(ns("live"), "e".to_string(), 60, 1); // pos 4, session 1
+        tracker.register_track(ns("live"), "f".to_string(), 50, 4); // pos 5
+        tracker.register_track(ns("live"), "g".to_string(), 40, 5); // pos 6
+        tracker.register_track(ns("live"), "h".to_string(), 30, 6); // pos 7
+        tracker.register_track(ns("live"), "i".to_string(), 20, 7); // pos 8
+        tracker.register_track(ns("live"), "j".to_string(), 10, 8); // pos 9
 
         let snapshot = tracker.load_snapshot();
         let last_self_pos = tracker.compute_last_self_position(1); // = 4
@@ -979,7 +1006,10 @@ mod tests {
         assert_eq!(tracker.find_track_position(&ns("live"), "a"), Some(0));
         assert_eq!(tracker.find_track_position(&ns("live"), "b"), Some(1));
         assert_eq!(tracker.find_track_position(&ns("live"), "c"), Some(2));
-        assert_eq!(tracker.find_track_position(&ns("live"), "nonexistent"), None);
+        assert_eq!(
+            tracker.find_track_position(&ns("live"), "nonexistent"),
+            None
+        );
     }
 
     #[test]
@@ -1012,7 +1042,10 @@ mod tests {
     fn test_tie_break_oldest_wins_default() {
         // Default config should use OldestWins
         let tracker = TopNTracker::new(0x100);
-        assert_eq!(tracker.config().tie_break_policy, TieBreakPolicy::OldestWins);
+        assert_eq!(
+            tracker.config().tie_break_policy,
+            TieBreakPolicy::OldestWins
+        );
         tracker.update_max_n(3);
 
         tracker.register_track(ns("live"), "first".to_string(), 100, 1);
@@ -1110,7 +1143,7 @@ mod tests {
 
         // Wait a bit, then update (even with same value refreshes timestamp)
         std::thread::sleep(Duration::from_millis(60));
-        tracker.update_value(&ns("live"), "a", 100);  // Same value, but refreshes timestamp
+        tracker.update_value(&ns("live"), "a", 100); // Same value, but refreshes timestamp
 
         // Wait more - would be stale without the refresh
         std::thread::sleep(Duration::from_millis(60));
@@ -1124,7 +1157,7 @@ mod tests {
     #[test]
     fn test_three_speakers_scenario_oldest_wins() {
         // The "worked example" from the design doc with OldestWins policy
-        let tracker = TopNTracker::new(0x100);  // Default: OldestWins
+        let tracker = TopNTracker::new(0x100); // Default: OldestWins
         tracker.update_max_n(3);
 
         // t0: A speaks (value=100)
@@ -1140,9 +1173,9 @@ mod tests {
 
         // With OldestWins: A (oldest) > B > C (newest)
         let top = tracker.compute_top_n_for_session(99, 3);
-        assert_eq!(top[0].1, "A");  // Position 1
-        assert_eq!(top[1].1, "B");  // Position 2
-        assert_eq!(top[2].1, "C");  // Position 3
+        assert_eq!(top[0].1, "A"); // Position 1
+        assert_eq!(top[1].1, "B"); // Position 2
+        assert_eq!(top[2].1, "C"); // Position 3
     }
 
     #[test]
@@ -1169,8 +1202,8 @@ mod tests {
 
         // With MostRecentWins: C (newest) > B > A (oldest)
         let top = tracker.compute_top_n_for_session(99, 3);
-        assert_eq!(top[0].1, "C");  // Position 1
-        assert_eq!(top[1].1, "B");  // Position 2
-        assert_eq!(top[2].1, "A");  // Position 3
+        assert_eq!(top[0].1, "C"); // Position 1
+        assert_eq!(top[1].1, "B"); // Position 2
+        assert_eq!(top[2].1, "A"); // Position 3
     }
 }

@@ -371,7 +371,11 @@ fn parse_auth_token_param(bytes: &[u8]) -> Option<Vec<moq_auth::AuthBlob>> {
     pos += varint_len;
 
     let token_value = bytes.get(pos..)?.to_vec();
-    log::debug!("parsed auth token: type=0x{:x}, value_len={}", token_type, token_value.len());
+    log::debug!(
+        "parsed auth token: type=0x{:x}, value_len={}",
+        token_type,
+        token_value.len()
+    );
 
     Some(vec![moq_auth::AuthBlob {
         token_type,

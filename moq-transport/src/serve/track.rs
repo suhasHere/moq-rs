@@ -321,7 +321,9 @@ mod tests {
         let track = Track::new(TrackNamespace::from_utf8_path("ns"), "t".to_string());
         let (writer, reader) = track.produce();
 
-        let _subgroups_writer = writer.subgroups().expect("subgroups transition should succeed");
+        let _subgroups_writer = writer
+            .subgroups()
+            .expect("subgroups transition should succeed");
 
         assert!(
             !reader.is_closed(),
@@ -334,7 +336,9 @@ mod tests {
         let track = Track::new(TrackNamespace::from_utf8_path("ns"), "t".to_string());
         let (writer, reader) = track.produce();
 
-        let subgroups_writer = writer.subgroups().expect("subgroups transition should succeed");
+        let subgroups_writer = writer
+            .subgroups()
+            .expect("subgroups transition should succeed");
         drop(subgroups_writer);
 
         assert!(
@@ -348,7 +352,9 @@ mod tests {
         let track = Track::new(TrackNamespace::from_utf8_path("ns"), "t".to_string());
         let (writer, reader) = track.produce();
 
-        let subgroups_writer = writer.subgroups().expect("subgroups transition should succeed");
+        let subgroups_writer = writer
+            .subgroups()
+            .expect("subgroups transition should succeed");
         subgroups_writer.close(ServeError::Cancel).unwrap();
 
         assert!(
@@ -389,7 +395,9 @@ mod tests {
         let track = Track::new(TrackNamespace::from_utf8_path("ns"), "t".to_string());
         let (writer, reader) = track.produce();
 
-        let _datagrams_writer = writer.datagrams().expect("datagrams transition should succeed");
+        let _datagrams_writer = writer
+            .datagrams()
+            .expect("datagrams transition should succeed");
 
         assert!(
             !reader.is_closed(),
@@ -402,7 +410,9 @@ mod tests {
         let track = Track::new(TrackNamespace::from_utf8_path("ns"), "t".to_string());
         let (writer, reader) = track.produce();
 
-        let datagrams_writer = writer.datagrams().expect("datagrams transition should succeed");
+        let datagrams_writer = writer
+            .datagrams()
+            .expect("datagrams transition should succeed");
         drop(datagrams_writer);
 
         assert!(
@@ -416,8 +426,9 @@ mod tests {
         let track = Track::new(TrackNamespace::from_utf8_path("ns"), "t".to_string());
         let (writer, reader) = track.produce();
 
-        let mut subgroups_writer =
-            writer.subgroups().expect("subgroups transition should succeed");
+        let mut subgroups_writer = writer
+            .subgroups()
+            .expect("subgroups transition should succeed");
 
         let _subgroup_writer = subgroups_writer
             .create(Subgroup {

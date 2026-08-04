@@ -595,8 +595,10 @@ impl Subscriber {
                 );
 
                 // Race both lookups with timeout
-                let subscribe_fut = self.get_subscribe_id_by_alias(track_alias, Some(DEFAULT_ALIAS_WAIT_TIME_MS));
-                let publish_fut = self.get_publish_id_by_alias(track_alias, Some(DEFAULT_ALIAS_WAIT_TIME_MS));
+                let subscribe_fut =
+                    self.get_subscribe_id_by_alias(track_alias, Some(DEFAULT_ALIAS_WAIT_TIME_MS));
+                let publish_fut =
+                    self.get_publish_id_by_alias(track_alias, Some(DEFAULT_ALIAS_WAIT_TIME_MS));
 
                 tokio::select! {
                     Some(subscribe_id) = subscribe_fut => {
@@ -951,8 +953,12 @@ impl Subscriber {
         // Fast path: check both maps immediately WITHOUT waiting
         // This allows datagrams to flow at full rate once alias mapping is established
         let (subscribe_id_immediate, publish_id_immediate) = {
-            let subscribe_id = self.get_subscribe_id_by_alias(datagram.track_alias, None).await;
-            let publish_id = self.get_publish_id_by_alias(datagram.track_alias, None).await;
+            let subscribe_id = self
+                .get_subscribe_id_by_alias(datagram.track_alias, None)
+                .await;
+            let publish_id = self
+                .get_publish_id_by_alias(datagram.track_alias, None)
+                .await;
             (subscribe_id, publish_id)
         };
 
@@ -983,8 +989,10 @@ impl Subscriber {
             }
         } else {
             // Slow path: alias not found immediately, wait with timeout (only for first datagram)
-            let subscribe_fut = self.get_subscribe_id_by_alias(datagram.track_alias, Some(DEFAULT_ALIAS_WAIT_TIME_MS));
-            let publish_fut = self.get_publish_id_by_alias(datagram.track_alias, Some(DEFAULT_ALIAS_WAIT_TIME_MS));
+            let subscribe_fut = self
+                .get_subscribe_id_by_alias(datagram.track_alias, Some(DEFAULT_ALIAS_WAIT_TIME_MS));
+            let publish_fut = self
+                .get_publish_id_by_alias(datagram.track_alias, Some(DEFAULT_ALIAS_WAIT_TIME_MS));
 
             tokio::select! {
                 Some(subscribe_id) = subscribe_fut => {

@@ -34,6 +34,7 @@ mod subscriber;
 mod track_status;
 mod track_status_ok;
 mod unsubscribe;
+mod unsubscribe_namespace;
 
 pub use dynamic_groups::*;
 pub use fetch::*;
@@ -64,6 +65,7 @@ pub use subscriber::*;
 pub use track_status::*;
 pub use track_status_ok::*;
 pub use unsubscribe::*;
+pub use unsubscribe_namespace::*;
 
 use crate::coding::{Decode, DecodeError, Encode, EncodeError};
 use std::fmt;
@@ -200,6 +202,7 @@ message_types! {
 
     // NAMESPACE family, sent by subscriber
     SubscribeNamespace = 0x11,
+    UnsubscribeNamespace = 0x14,
 
     // FETCH family, sent by subscriber
     Fetch = 0x16,

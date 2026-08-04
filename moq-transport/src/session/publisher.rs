@@ -301,6 +301,10 @@ impl Publisher {
             }
             message::Subscriber::TrackStatus(msg) => self.recv_track_status(msg),
             message::Subscriber::SubscribeNamespace(msg) => self.recv_subscribe_namespace(msg),
+            message::Subscriber::UnsubscribeNamespace(msg) => {
+                log::info!("received UNSUBSCRIBE_NAMESPACE for {:?}", msg.track_namespace_prefix);
+                Ok(())
+            }
             message::Subscriber::PublishNamespaceCancel(msg) => {
                 self.recv_publish_namespace_cancel(msg)
             }

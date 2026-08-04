@@ -271,19 +271,36 @@ impl Producer {
             let mut publisher = self.publisher.clone();
 
             tokio::spawn(async move {
+                // Pre-acquire mode before the network round-trip (PUBLISH → PUBLISH_OK).
+                // For existing tracks, mode is already set so this returns immediately.
+                // This avoids a race where mode() blocks after ok() if the TrackReader
+                // state isn't visible to this task's clone.
+                let mode = match track_reader.mode().await {
+                    Ok(mode) => mode,
+                    Err(e) => {
+                        log::warn!(
+                            "existing track {}/{} mode not available: {}",
+                            ns,
+                            track_name,
+                            e
+                        );
+                        return;
+                    }
+                };
+
                 match publisher
-                    .publish_with_extensions(track_reader.clone(), track_extensions)
+                    .publish_with_extensions(track_reader, track_extensions)
                     .await
                 {
                     Ok(published) => {
                         log::info!(
-                            "sent PUBLISH for existing track {}/{} (request_id={}), starting serve",
+                            "sent PUBLISH for existing track {}/{} (request_id={}), serving with pre-acquired mode",
                             ns,
                             track_name,
                             published.info.id
                         );
 
-                        match published.serve(track_reader).await {
+                        match published.serve_mode(mode).await {
                             Ok(()) => {
                                 log::info!(
                                     "existing track {}/{} serving completed",

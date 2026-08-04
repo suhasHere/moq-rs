@@ -250,11 +250,12 @@ impl Producer {
         // Send PUBLISH for existing tracks in matching namespaces
         // This triggers the client's onMatch callback for track discovery
         // Note: We skip PUBLISH_NAMESPACE and send PUBLISH directly - client expects PUBLISH for tracks
-        let matching_tracks = self.locals.matching_tracks(&namespace_prefix);
+        let matching_tracks = self.locals.matching_tracks(&namespace_prefix, self.session_id);
         log::info!(
-            "found {} existing tracks matching prefix {:?}",
+            "found {} existing tracks matching prefix {:?} (my session_id={})",
             matching_tracks.len(),
-            namespace_prefix
+            namespace_prefix,
+            self.session_id
         );
 
         for (ns, track_name, track_info) in matching_tracks {

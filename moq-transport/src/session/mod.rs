@@ -147,7 +147,15 @@ impl Session {
     pub async fn accept_with_params(
         session: web_transport::Session,
         mlog_path: Option<PathBuf>,
-    ) -> Result<(Session, Option<Publisher>, Option<Subscriber>, KeyValuePairs), SessionError> {
+    ) -> Result<
+        (
+            Session,
+            Option<Publisher>,
+            Option<Subscriber>,
+            KeyValuePairs,
+        ),
+        SessionError,
+    > {
         let mut mlog = mlog_path.and_then(|path| {
             mlog::MlogWriter::new(path)
                 .map_err(|e| log::warn!("Failed to create mlog: {}", e))

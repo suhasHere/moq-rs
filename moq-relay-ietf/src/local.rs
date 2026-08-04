@@ -1,6 +1,6 @@
 use std::collections::hash_map;
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
 use moq_transport::{
@@ -51,6 +51,8 @@ pub struct TrackInfo {
     forward_receiver: Mutex<Option<watch::Receiver<bool>>>,
     /// Track extensions from the original PUBLISH message
     track_extensions: Mutex<Option<ExtensionHeaders>>,
+    /// Session ID of the publisher (for self-exclusion)
+    publisher_session_id: AtomicU64,
 }
 
 impl TrackInfo {
@@ -67,7 +69,16 @@ impl TrackInfo {
             forward_state: Mutex::new(None),
             forward_receiver: Mutex::new(None),
             track_extensions: Mutex::new(None),
+            publisher_session_id: AtomicU64::new(0),
         }
+    }
+
+    pub fn set_publisher_session_id(&self, session_id: u64) {
+        self.publisher_session_id.store(session_id, Ordering::SeqCst);
+    }
+
+    pub fn publisher_session_id(&self) -> u64 {
+        self.publisher_session_id.load(Ordering::SeqCst)
     }
 
     pub fn get_reader(&self) -> TrackReader {
@@ -128,13 +139,16 @@ impl TrackInfo {
             .ok_or(ServeError::Duplicate)
     }
 
-
     pub fn state(&self) -> TrackState {
         TrackState::from_u8(self.state.load(Ordering::SeqCst))
     }
 
     pub fn is_publishing(&self) -> bool {
         self.state() == TrackState::Publishing
+    }
+
+    pub fn close(&self) {
+        self.state.store(TrackState::Closed as u8, Ordering::SeqCst);
     }
 
     /// Set up forward state tracking when PUBLISH is received.
@@ -508,9 +522,26 @@ impl Locals {
             .collect()
     }
 
+    pub fn close_track(&self, namespace: &TrackNamespace, track_name: &str) {
+        let lookup = self.lookup.lock().unwrap();
+        let track_key = format!("{}:{}", namespace, track_name);
+
+        if let Some(entry) = Self::find_best_match_entry(&lookup, namespace) {
+            let tracks = entry.tracks.lock().unwrap();
+            if let Some(track_info) = tracks.get(&track_key) {
+                track_info.close();
+            }
+        }
+    }
+
     /// Get all tracks in namespaces matching a prefix that are in Publishing state.
+    /// Excludes tracks published by the given session_id (self-exclusion).
     /// Returns (namespace, track_name, TrackInfo) tuples.
-    pub fn matching_tracks(&self, prefix: &TrackNamespace) -> Vec<(TrackNamespace, String, Arc<TrackInfo>)> {
+    pub fn matching_tracks(
+        &self,
+        prefix: &TrackNamespace,
+        exclude_session_id: u64,
+    ) -> Vec<(TrackNamespace, String, Arc<TrackInfo>)> {
         let lookup = self.lookup.lock().unwrap();
 
         let mut result = Vec::new();
@@ -526,9 +557,17 @@ impl Locals {
             {
                 // Get all tracks in this namespace that are publishing
                 let tracks = entry.tracks.lock().unwrap();
-                for (key, track_info) in tracks.iter() {
+                for (_key, track_info) in tracks.iter() {
                     if track_info.is_publishing() {
-                        result.push((ns.clone(), track_info.name.clone(), track_info.clone()));
+                        let pub_sid = track_info.publisher_session_id();
+                        if exclude_session_id == 0 || pub_sid != exclude_session_id {
+                            result.push((ns.clone(), track_info.name.clone(), track_info.clone()));
+                        } else {
+                            log::debug!(
+                                "self-excluding track {}/{} (publisher_session_id={}, my_session_id={})",
+                                ns, track_info.name, pub_sid, exclude_session_id
+                            );
+                        }
                     }
                 }
             }

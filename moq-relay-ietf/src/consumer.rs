@@ -1,10 +1,10 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 
 use anyhow::Context;
 use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
 use moq_transport::{
-    coding::KeyValuePairs,
+    coding::{KeyValuePairs, TrackNamespace},
     message::PublishOk,
     serve::{ServeError, Tracks},
     session::{PublishNamespaceReceived, PublishReceived, SessionError, Subscriber},
@@ -21,6 +21,7 @@ pub struct Consumer {
     forward: Option<Producer>, // Forward all announcements to this subscriber
     subscriber_registry: Option<SubscriberRegistry>,
     session_id: u64,
+    published_tracks: Arc<Mutex<Vec<(TrackNamespace, String)>>>,
 }
 
 impl Consumer {
@@ -37,6 +38,7 @@ impl Consumer {
             forward,
             subscriber_registry: None,
             session_id: 0,
+            published_tracks: Default::default(),
         }
     }
 
@@ -56,6 +58,7 @@ impl Consumer {
             forward,
             subscriber_registry: Some(subscriber_registry),
             session_id,
+            published_tracks: Default::default(),
         }
     }
 
@@ -103,10 +106,18 @@ impl Consumer {
                 },
                 else => {
                     log::debug!("[CONSUMER] run: else branch triggered, returning");
-                    return Ok(());
+                    break;
                 },
             };
         }
+
+        let tracks = self.published_tracks.lock().unwrap();
+        for (ns, name) in tracks.iter() {
+            log::info!("session ended, closing track {}/{}", ns, name);
+            self.locals.close_track(ns, name);
+        }
+
+        Ok(())
     }
 
     async fn serve_publish_namespace(
@@ -138,7 +149,8 @@ impl Consumer {
         // This will trigger forwarding to matching SUBSCRIBE_NAMESPACE subscriptions
         // Uses session_id for self-exclusion
         if let Some(ref registry) = self.subscriber_registry {
-            let notified = registry.notify_publish_namespace(&publish_ns.namespace, self.session_id);
+            let notified =
+                registry.notify_publish_namespace(&publish_ns.namespace, self.session_id);
             if notified > 0 {
                 log::info!(
                     "notified {} SUBSCRIBE_NAMESPACE subscriptions of PUBLISH_NAMESPACE {:?}",
@@ -224,6 +236,10 @@ impl Consumer {
             .locals
             .get_or_create_track_info_auto_register(&namespace, &track_name);
 
+        // Set session_id before publish_arrived() so matching_tracks() can exclude
+        // this track even in the window between state=Publishing and PUBLISH_OK
+        track_info.set_publisher_session_id(self.session_id);
+
         let writer = match track_info.publish_arrived() {
             Ok(w) => w,
             Err(ServeError::Uninterested) => {
@@ -272,6 +288,11 @@ impl Consumer {
         };
 
         publish.accept(writer, msg)?;
+
+        self.published_tracks
+            .lock()
+            .unwrap()
+            .push((namespace.clone(), track_name.clone()));
 
         log::info!(
             "PUBLISH accepted, track {}/{} now in Publishing state (forward={})",
@@ -335,7 +356,8 @@ impl Consumer {
             // Clear stale dedup entries for this track (handles re-publish after PUBLISH_DONE)
             registry.remove_track(&namespace, &track_name);
 
-            let notified = registry.notify_publish(&namespace, &track_name, track_alias, self.session_id);
+            let notified =
+                registry.notify_publish(&namespace, &track_name, track_alias, self.session_id);
             if notified > 0 {
                 log::info!(
                     "notified {} SUBSCRIBE_NAMESPACE subscriptions of PUBLISH {}/{}",
